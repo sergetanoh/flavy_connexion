@@ -58,18 +58,12 @@ class UserLoginAPIView(APIView):
 
         if user_instance is not None:
             if user_instance.is_active:
-                user_access_token = generate_access_token(user_instance)
-                user_refresh_token = generate_refresh_token(user_instance)
-
+                
                 # Enregistrez le jeton dans la base de données
-                Token.objects.update_or_create(user=user_instance)
+               
 
                 response = Response()
-                response.set_cookie(key='access_token', value=user_access_token, httponly=True)
-                response.data = {
-                    'access_token': user_access_token,
-                    'refresh_token': user_refresh_token
-                }
+                
                 return response
             else:
                 raise AuthenticationFailed('Le compte utilisateur n\'est pas actif.')

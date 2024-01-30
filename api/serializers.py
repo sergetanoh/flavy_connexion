@@ -1,8 +1,8 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import Client,Pharmacie
-
-
+from .models import Categorie_Produit, Produit,Commande,Facture
+import pdb
 
 class UserSerializer(serializers.ModelSerializer):
 	password = serializers.CharField(max_length=100, min_length=8, style={'input_type': 'password'})
@@ -57,14 +57,17 @@ class PharmacieRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         # Extraire les données utilisateur du sérialiseur PharmacieSerializer
-        user_data = validated_data.pop('user')
+       
 
+
+        user_data = validated_data.pop('user')
+        
         # Créer un utilisateur avec les données extraites
         user = get_user_model().objects.create(**user_data)
 
         # Créer la pharmacie associée à cet utilisateur
         pharmacie = Pharmacie.objects.create(user=user, **validated_data)
-
+        
         return pharmacie
 
 
@@ -74,3 +77,63 @@ class UserLoginSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=100, read_only=True)
     password = serializers.CharField(max_length=100, min_length=8, style={'input_type': 'password'})
     token = serializers.CharField(max_length=255, read_only=True)
+
+
+
+
+
+
+
+
+
+class CategorieProduitSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Categorie_Produit
+        fields = ['id', 'Category', 'Description']
+
+class ProduitSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Produit
+        fields = ['id', 'Id_Category','Id_Pharmacie', 'Nom', 'Description', 'Prix_Unitaire', 'Quantite', 'Disponibilite', 'Client_Cible', 'Date_Exp', 'Date_Creation']
+
+
+class CommandeClientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Commande
+        fields = ['id', 'produit','client', 'quantite', 'statut', 'date_livraison']
+        read_only_fields = ['id',  'date_livraison', 'date_creation', 'client','statut','generer_recu']
+
+        def update(self, instance, validated_data):
+        # Autoriser la modification uniquement des champs spécifiques
+            allowed_fields = ['produit','quantite']
+            for field in allowed_fields:
+                if field in validated_data:
+                    setattr(instance, field, validated_data[field])
+
+            instance.save()
+            return instance
+        
+        
+class CommandePharmacieSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Commande
+        fields = ['id', 'produit','client', 'quantite', 'statut', 'date_livraison']
+        read_only_fields = ['id', 'produit', 'quantite', 'date_creation', 'client']
+
+        def update(self, instance, validated_data):
+        # Autoriser la modification uniquement des champs spécifiques
+            allowed_fields = ['statut', 'date_livraison']
+            for field in allowed_fields:
+                if field in validated_data:
+                    setattr(instance, field, validated_data[field])
+
+            instance.save()
+            return instance        
+        
+        
+        
+
+class FactureSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Facture
+        fields = '__all__'        

@@ -2,9 +2,9 @@ from django.conf import settings
 from datetime import datetime, timedelta
 import jwt
 
-def generate_access_token(client):
+def generate_access_token(user):
     payload = {
-        'client_id': client.user.id,  # Utilisez l'ID de l'utilisateur associé au client
+        'user_id': user.id,  # Utilisez l'ID de l'utilisateur associé au user
         'exp': datetime.utcnow() + timedelta(days=1, minutes=0),
         'iat': datetime.utcnow(),
     }
@@ -13,9 +13,9 @@ def generate_access_token(client):
 
     return access_token
 
-def generate_refresh_token(client):
+def generate_refresh_token(user):
     payload = {
-        'client_id': client.user.id,  # Utilisez l'ID de l'utilisateur associé au client
+        'user_id': user.id,  # Utilisez l'ID de l'utilisateur associé au user
         'exp': datetime.utcnow() + timedelta(days=7, minutes=0),
         'iat': datetime.utcnow(),
     }
