@@ -1,5 +1,5 @@
 
-from .serializers import ClientRegistrationSerializer,UserLoginSerializer,PharmacieRegistrationSerializer,CategorieProduitSerializer, ProduitSerializer,CommandePharmacieSerializer,CommandeClientSerializer,FactureSerializer
+from .serializers import ClientRegistrationSerializer,UserLoginSerializer,PharmacieRegistrationSerializer,CategorieProduitSerializer, ProduitSerializer,CommandePharmacieSerializer,CommandeClientSerializer,FactureSerializer,UserSerializer
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -15,6 +15,7 @@ from django.template import loader
 from rest_framework import serializers
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from rest_framework.permissions import IsAuthenticated
 
 
 # Importez le modèle Facture et le sérialiseur FactureSerializer
@@ -26,7 +27,51 @@ import jwt
 from .permissions import IsPharmacieOrReadOnly,IsSuperUserOrReadOnly,IsClientOrReadOnly,IsPharmacieCanModifyCommande
 from .backends import EmailBackend
 
-
+def has_key(errors):
+    if isinstance(errors, dict):
+        if "user" in errors:
+            if "email" in errors["user"]:
+               return  {'details': "email: "+ errors["user"]["email"][0] }
+           
+            if "username" in errors["user"]:
+               return  {'details': "username: "+ errors["user"]["username"][0] }
+           
+            if "password" in errors["user"]:
+               return  {'details': "password: "+ errors["user"]["password"][0] }
+           
+            if "is_pharmacy" in errors["user"]:
+               return  {'details': "is_pharmacy: "+ errors["user"]["is_pharmacy"][0] }
+           
+        if "prenom" in errors:
+            return  {'details': "prenom: "+ errors["prenom"][0] }
+        
+        if "adresse" in errors:
+            return  {'details':"adresse: "+  errors["adresse"][0] }
+        
+        if "ville" in errors:
+            return  {'details':"ville: "+  errors["ville"][0] }
+        
+        if "phone" in errors:
+            return  {'details':"phone: "+  errors["phone"][0] }
+        
+        
+        if "image" in errors:
+            return  {'details': "image: "+ errors["image"][0] }
+        
+        if "n_cmu" in errors:
+            return  {'details':"n_cmu: "+  errors["n_cmu"][0] }
+        
+        if "n_assurance" in errors:
+            return  {'details': "n_assurance: "+ errors["n_assurance"][0] }
+        
+        if "sexe" in errors:
+            return  {'details': "sexe: "+ errors["sexe"][0] }
+        
+        if "maladie_chronique" in errors:
+            return  {'details':  "maladie_chronique: "+ errors["maladie_chronique"][0] }
+        
+        if "poids" in errors:
+            return  {'details':"poids: "+  errors["poids"][0] }
 
 class ClientRegistrationAPIView(APIView):
     serializer_class = ClientRegistrationSerializer
@@ -38,12 +83,11 @@ class ClientRegistrationAPIView(APIView):
             "password": "motdepasseclient",
             "is_pharmacy": False
         },
-        "Prenom": "John",
+        "prenom": "John",
         "adresse": "123 Rue de la Ville",
         "ville": "Ville",
         "phone": "0123456789",
         "image": "lien_de_l_image.jpg",
-        "id_type_assurance": 1,
         "n_cmu": "CMU123",
         "n_assurance": "Assurance123",
         "sexe": "Homme",
@@ -66,7 +110,7 @@ class ClientRegistrationAPIView(APIView):
         responses={
             201: openapi.Response('Client enregistré avec succès', examples={
                 'application/json': {
-                    'messages': 'Client enregistré avec succès!',
+                    'details': 'Client enregistré avec succès!',
                 },
             }),
             400: openapi.Response('Erreur de validation', examples={
@@ -80,7 +124,7 @@ class ClientRegistrationAPIView(APIView):
     )
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(raise_exception=True):
+        if serializer.is_valid(raise_exception=False):
             # Créez et enregistrez un nouvel utilisateur
             new_user = User.objects.create_user(
                 email=serializer.validated_data['user']['email'],
@@ -97,7 +141,6 @@ class ClientRegistrationAPIView(APIView):
                 ville=serializer.validated_data['ville'],
                 phone=serializer.validated_data['phone'],
                 image=serializer.validated_data['image'],
-                id_type_assurance=serializer.validated_data['id_type_assurance'],
                 n_cmu=serializer.validated_data['n_cmu'],
                 n_assurance=serializer.validated_data['n_assurance'],
                 sexe=serializer.validated_data['sexe'],
@@ -108,12 +151,16 @@ class ClientRegistrationAPIView(APIView):
 
             # Utilisez les tokens pour générer les cookies
             data = {
-                'messages': f"Client {new_client.Prenom} enregistré avec succès!",
+                'details': f"Client {new_client.Prenom} enregistré avec succès!",
             }
             response = Response(data, status=status.HTTP_201_CREATED)
 
             return response
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        list_erreur=has_key(serializer.errors)
+            
+        
+        return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
  
  
  
@@ -157,7 +204,7 @@ class PharmacieRegistrationAPIView(APIView):
         responses={
             201: openapi.Response('Pharmacie enregistrée avec succès', examples={
                 'application/json': {
-                    'messagges': 'Pharmacie enregistrée avec succès!',
+                    'details': 'Pharmacie enregistrée avec succès!',
                 },
             }),
             400: openapi.Response('Erreur de validation', examples={
@@ -171,7 +218,7 @@ class PharmacieRegistrationAPIView(APIView):
     )
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(raise_exception=True):
+        if serializer.is_valid(raise_exception=False):
             # Créez et enregistrez un nouvel utilisateur
             new_user = User.objects.create_user(
                 email=serializer.validated_data['user']['email'],
@@ -191,18 +238,41 @@ class PharmacieRegistrationAPIView(APIView):
                 numero_contact_pharmacie=serializer.validated_data['numero_contact_pharmacie'],
                 horaire_ouverture_pharmacie=serializer.validated_data['horaire_ouverture_pharmacie'],
             )
+            refresh = RefreshToken.for_user(new_user)
 
             print(f"Pharmacie {new_pharmacie.nom_pharmacie} enregistrée avec succès!")
-
+            
             data = {
-                'messagges': f"Pharmacie {new_pharmacie.nom_pharmacie} enregistrée avec succès!",
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'details': f"Pharmacie {new_pharmacie.nom_pharmacie} enregistrée avec succès!",
             }
             response = Response(data, status=status.HTTP_201_CREATED)
 
             return response
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        errors = {field: [str(serializer.errors[field])] for field in serializer.errors}
 
+        
+        response_data = {"details": errors}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+        
 
+class UserDetailView(RetrieveAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary='Récupérer les informations de l\'utilisateur connecté',
+        operation_description='Récupère les informations de l\'utilisateur connecté, y compris son ID, nom d\'utilisateur et email.',
+        responses={
+            200: openapi.Response('Informations utilisateur récupérées avec succès', UserSerializer),
+            401: 'Non authentifié - L\'utilisateur doit être connecté pour accéder à cette ressource.',
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
 
 
@@ -239,7 +309,7 @@ class UserLoginAPIView(APIView):
                 'application/json': {
                     'refresh': 'refresh_token',
                     'access': 'access_token',
-                    'messages': 'Utilisateur connecté avec succès',
+                    'details': 'Utilisateur connecté avec succès',
                 },
             }),
             401: openapi.Response('Échec de l\'authentification', examples={
@@ -267,7 +337,7 @@ class UserLoginAPIView(APIView):
                 response_data = {
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),
-                    'messages': 'Utilisateur connecté avec succès',
+                    'details': 'Utilisateur connecté avec succès',
                 }
 
                 return Response(response_data, status=status.HTTP_200_OK)

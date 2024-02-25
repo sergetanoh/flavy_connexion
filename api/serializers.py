@@ -29,7 +29,7 @@ class ClientRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Client
-        fields = ['user', 'Prenom', 'adresse', 'ville', 'phone', 'image', 'id_type_assurance', 'n_cmu', 'n_assurance', 'sexe', 'maladie_chronique', 'poids', 'taille']
+        fields = ['user', 'prenom', 'adresse', 'ville', 'phone', 'image', 'n_cmu', 'n_assurance', 'sexe', 'maladie_chronique', 'poids', 'taille']
         extra_kwargs = {'date_inscription': {'read_only': True}}  # Empêche la modification de la date_inscription
 
     # On override la méthode create pour créer d'abord l'utilisateur puis le client

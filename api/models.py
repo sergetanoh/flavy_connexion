@@ -66,17 +66,17 @@ class Client(models.Model):
         ('Femme', 'Femme'),
     ]
     
-    Prenom = models.CharField(max_length=255)
+    prenom = models.CharField(max_length=255)
     adresse = models.CharField(max_length=255)
     ville = models.CharField(max_length=255)
     phone = models.CharField(max_length=15)
     image = models.CharField(max_length=255)
-    n_cmu = models.CharField(max_length=255)
-    n_assurance = models.CharField(max_length=255)
+    n_cmu = models.CharField(max_length=255,null=True, blank=True)
+    n_assurance = models.CharField(max_length=255,null=True, blank=True)
     sexe = models.CharField(max_length=10, choices=SEXE_CHOICES)
-    maladie_chronique = models.TextField()
-    poids = models.DecimalField(max_digits=5, decimal_places=2)
-    taille = models.DecimalField(max_digits=5, decimal_places=2)
+    maladie_chronique = models.TextField(null=True, blank=True)
+    poids = models.DecimalField(max_digits=5, decimal_places=2,null=True, blank=True)
+    taille = models.DecimalField(max_digits=5, decimal_places=2,null=True, blank=True)
     
     
 

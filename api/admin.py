@@ -6,7 +6,7 @@ from .models import *
 # Personnalisez l'affichage dans l'interface d'administration pour les modèles spécifiques
 
 class ClientAdmin(admin.ModelAdmin):
-    list_display = ('user', 'Prenom', 'adresse', 'ville', 'phone', 'sexe')
+    list_display = ('user', 'prenom', 'adresse', 'ville', 'phone', 'sexe')
     search_fields = ('user__email', 'Prenom', 'phone')
 
 class PharmacieAdmin(admin.ModelAdmin):
