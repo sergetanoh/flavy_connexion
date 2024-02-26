@@ -7,7 +7,7 @@ from .models import *
 
 class ClientAdmin(admin.ModelAdmin):
     list_display = ('user', 'prenom', 'adresse', 'ville', 'phone', 'sexe')
-    search_fields = ('user__email', 'Prenom', 'phone')
+    search_fields = ('user__email', 'prenom', 'phone')
 
 class PharmacieAdmin(admin.ModelAdmin):
     list_display = ('user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie','degarde')

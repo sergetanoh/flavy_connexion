@@ -299,6 +299,7 @@ class PharmacieRegistrationAPIView(APIView):
         return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
         
 
+
 class UserDetailView(RetrieveAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
