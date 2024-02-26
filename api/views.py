@@ -27,7 +27,7 @@ import jwt
 from .permissions import IsPharmacieOrReadOnly,IsSuperUserOrReadOnly,IsClientOrReadOnly,IsPharmacieCanModifyCommande
 from .backends import EmailBackend
 
-def has_key(errors):
+def has_key_client(errors):
     if isinstance(errors, dict):
         if "user" in errors:
             if "email" in errors["user"]:
@@ -157,7 +157,7 @@ class ClientRegistrationAPIView(APIView):
 
             return response
         
-        list_erreur=has_key(serializer.errors)
+        list_erreur=has_key_client(serializer.errors)
             
         
         return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
@@ -166,14 +166,57 @@ class ClientRegistrationAPIView(APIView):
  
  
  
- 
+def has_key_pharmacie(errors):
+    if isinstance(errors, dict):
+        if "user" in errors:
+            if "email" in errors["user"]:
+               return  {'details': "email: "+ errors["user"]["email"][0] }
+           
+            if "username" in errors["user"]:
+               return  {'details': "username: "+ errors["user"]["username"][0] }
+           
+            if "password" in errors["user"]:
+               return  {'details': "password: "+ errors["user"]["password"][0] }
+           
+            if "is_pharmacy" in errors["user"]:
+               return  {'details': "is_pharmacy: "+ errors["user"]["is_pharmacy"][0] }
+           
+        if "num_pharmacie" in errors:
+            return  {'details': "num_pharmacie: "+ errors["num_pharmacie"][0] }
+        
+        if "nom_pharmacie" in errors:
+            return  {'details':"nom_pharmacie: "+  errors["nom_pharmacie"][0] }
+        
+        if "adresse_pharmacie" in errors:
+            return  {'details':"adresse_pharmacie: "+  errors["adresse_pharmacie"][0] }
+        
+        if "commune_pharmacie" in errors:
+            return  {'details':"commune_pharmacie: "+  errors["commune_pharmacie"][0] }
+        
+        
+        if "image" in errors:
+            return  {'details': "image: "+ errors["image"][0] }
+        
+        if "n_cmu" in errors:
+            return  {'details':"n_cmu: "+  errors["n_cmu"][0] }
+        
+        if "n_assurance" in errors:
+            return  {'details': "n_assurance: "+ errors["n_assurance"][0] }
+        
+        if "ville_pharmacie" in errors:
+            return  {'details': "ville_pharmacie: "+ errors["ville_pharmacie"][0] }
+        
+        if "numero_contact_pharmacie" in errors:
+            return  {'details':  "numero_contact_pharmacie: "+ errors["numero_contact_pharmacie"][0] }
+        
+        if "horaire_ouverture_pharmacie" in errors:
+            return  {'details':"horaire_ouverture_pharmacie: "+  errors["horaire_ouverture_pharmacie"][0] }
  
     
 class PharmacieRegistrationAPIView(APIView):
     serializer_class = PharmacieRegistrationSerializer
-   
-    permission_classes = (AllowAny,)
 
+    permission_classes = (AllowAny,)
     example_request = {
         "user": {
             "email": "pharmacie@example.com",
@@ -250,11 +293,10 @@ class PharmacieRegistrationAPIView(APIView):
             response = Response(data, status=status.HTTP_201_CREATED)
 
             return response
-        errors = {field: [str(serializer.errors[field])] for field in serializer.errors}
-
+        list_erreur=has_key_pharmacie(serializer.errors)
+            
         
-        response_data = {"details": errors}
-        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+        return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
         
 
 class UserDetailView(RetrieveAPIView):
