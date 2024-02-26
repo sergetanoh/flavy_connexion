@@ -9,7 +9,8 @@ from .views import (
  CategorieProduitAPIView,
 CommandeAPIViewPharmacie,
 CommandeAPIViewClient,
-CommandeDetailView
+CommandeDetailView,
+UserDetailView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -45,6 +46,5 @@ urlpatterns = [
     path('api/commande/client', CommandeAPIViewClient.as_view(), name='commande_client'),
     
     path('api/commande/client/detail/', CommandeDetailView.as_view(), name='commande_client_detail'),
-    
-    
+    path('user/profile',UserDetailView.as_view(), name='user_profile')    
 ]
