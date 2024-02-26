@@ -71,7 +71,14 @@ class PharmacieRegistrationSerializer(serializers.ModelSerializer):
         return pharmacie
 
 
-
+class get_pharmacieSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pharmacie
+        fields = ['id', 'user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie', 'degarde']
+        read_only_fields = ['id', 'user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie', 'degarde']
+  
+  
+  
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.CharField(max_length=100)
     username = serializers.CharField(max_length=100, read_only=True)

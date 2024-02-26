@@ -1,5 +1,5 @@
 
-from .serializers import ClientRegistrationSerializer,UserLoginSerializer,PharmacieRegistrationSerializer,CategorieProduitSerializer, ProduitSerializer,CommandePharmacieSerializer,CommandeClientSerializer,FactureSerializer,UserSerializer
+from .serializers import ClientRegistrationSerializer,UserLoginSerializer,PharmacieRegistrationSerializer,CategorieProduitSerializer, ProduitSerializer,CommandePharmacieSerializer,CommandeClientSerializer,FactureSerializer,UserSerializer,get_pharmacieSerializer
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -857,3 +857,10 @@ class CommandeDetailView(RetrieveAPIView):
         else:
             # Gérer les erreurs de sérialisation
             raise serializers.ValidationError(facture_serializer.errors)
+
+class get_pharmacie(APIView):
+   
+    def get(self,request):
+        pharmacie=Pharmacie.objects.all()
+        serializer=get_pharmacieSerializer(pharmacie,many=True)
+        return Response(serializer.data)
