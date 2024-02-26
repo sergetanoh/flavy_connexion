@@ -152,6 +152,7 @@ class ClientRegistrationAPIView(APIView):
             # Utilisez les tokens pour générer les cookies
             data = {
                 'detail': f"Client {new_client.prenom} enregistré avec succès!",
+                'user_data':ClientRegistrationSerializer(new_client,many=True)
             }
             response = Response(data, status=status.HTTP_201_CREATED)
 
@@ -289,6 +290,7 @@ class PharmacieRegistrationAPIView(APIView):
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
                 'detail': f"Pharmacie {new_pharmacie.nom_pharmacie} enregistrée avec succès!",
+                'user_data':PharmacieRegistrationSerializer(new_pharmacie,many=True)
             }
             response = Response(data, status=status.HTTP_201_CREATED)
 
