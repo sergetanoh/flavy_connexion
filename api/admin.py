@@ -10,8 +10,8 @@ class ClientAdmin(admin.ModelAdmin):
     search_fields = ('user__email', 'Prenom', 'phone')
 
 class PharmacieAdmin(admin.ModelAdmin):
-    list_display = ('user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie')
-    search_fields = ('user__email', 'nom_pharmacie', 'num_pharmacie')
+    list_display = ('user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie','degarde')
+    search_fields = ('user__email', 'nom_pharmacie', 'num_pharmacie','degarde')
 
 class ProduitAdmin(admin.ModelAdmin):
     list_display = ('Nom', 'Id_Category', 'get_pharmacie_name', 'Prix_Unitaire', 'Quantite', 'Disponibilite', 'Client_Cible', 'Date_Exp', 'Date_Creation')

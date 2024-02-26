@@ -91,6 +91,7 @@ class Pharmacie(models.Model):
     ville_pharmacie = models.CharField(max_length=100, blank=True, null=True)
     numero_contact_pharmacie = models.CharField(max_length=20, blank=True, null=True)
     horaire_ouverture_pharmacie = models.CharField(max_length=255, blank=True, null=True)
+    degarde=models.BooleanField(default=False)
     
 
 

@@ -31,47 +31,47 @@ def has_key_client(errors):
     if isinstance(errors, dict):
         if "user" in errors:
             if "email" in errors["user"]:
-               return  {'details': "email: "+ errors["user"]["email"][0] }
+               return  {'detail': "email: "+ errors["user"]["email"][0] }
            
             if "username" in errors["user"]:
-               return  {'details': "username: "+ errors["user"]["username"][0] }
+               return  {'detail': "username: "+ errors["user"]["username"][0] }
            
             if "password" in errors["user"]:
-               return  {'details': "password: "+ errors["user"]["password"][0] }
+               return  {'detail': "password: "+ errors["user"]["password"][0] }
            
             if "is_pharmacy" in errors["user"]:
-               return  {'details': "is_pharmacy: "+ errors["user"]["is_pharmacy"][0] }
+               return  {'detail': "is_pharmacy: "+ errors["user"]["is_pharmacy"][0] }
            
         if "prenom" in errors:
-            return  {'details': "prenom: "+ errors["prenom"][0] }
+            return  {'detail': "prenom: "+ errors["prenom"][0] }
         
         if "adresse" in errors:
-            return  {'details':"adresse: "+  errors["adresse"][0] }
+            return  {'detail':"adresse: "+  errors["adresse"][0] }
         
         if "ville" in errors:
-            return  {'details':"ville: "+  errors["ville"][0] }
+            return  {'detail':"ville: "+  errors["ville"][0] }
         
         if "phone" in errors:
-            return  {'details':"phone: "+  errors["phone"][0] }
+            return  {'detail':"phone: "+  errors["phone"][0] }
         
         
         if "image" in errors:
-            return  {'details': "image: "+ errors["image"][0] }
+            return  {'detail': "image: "+ errors["image"][0] }
         
         if "n_cmu" in errors:
-            return  {'details':"n_cmu: "+  errors["n_cmu"][0] }
+            return  {'detail':"n_cmu: "+  errors["n_cmu"][0] }
         
         if "n_assurance" in errors:
-            return  {'details': "n_assurance: "+ errors["n_assurance"][0] }
+            return  {'detail': "n_assurance: "+ errors["n_assurance"][0] }
         
         if "sexe" in errors:
-            return  {'details': "sexe: "+ errors["sexe"][0] }
+            return  {'detail': "sexe: "+ errors["sexe"][0] }
         
         if "maladie_chronique" in errors:
-            return  {'details':  "maladie_chronique: "+ errors["maladie_chronique"][0] }
+            return  {'detail':  "maladie_chronique: "+ errors["maladie_chronique"][0] }
         
         if "poids" in errors:
-            return  {'details':"poids: "+  errors["poids"][0] }
+            return  {'detail':"poids: "+  errors["poids"][0] }
 
 class ClientRegistrationAPIView(APIView):
     serializer_class = ClientRegistrationSerializer
@@ -110,7 +110,7 @@ class ClientRegistrationAPIView(APIView):
         responses={
             201: openapi.Response('Client enregistré avec succès', examples={
                 'application/json': {
-                    'details': 'Client enregistré avec succès!',
+                    'detail': 'Client enregistré avec succès!',
                 },
             }),
             400: openapi.Response('Erreur de validation', examples={
@@ -151,7 +151,7 @@ class ClientRegistrationAPIView(APIView):
 
             # Utilisez les tokens pour générer les cookies
             data = {
-                'details': f"Client {new_client.prenom} enregistré avec succès!",
+                'detail': f"Client {new_client.prenom} enregistré avec succès!",
             }
             response = Response(data, status=status.HTTP_201_CREATED)
 
@@ -170,47 +170,47 @@ def has_key_pharmacie(errors):
     if isinstance(errors, dict):
         if "user" in errors:
             if "email" in errors["user"]:
-               return  {'details': "email: "+ errors["user"]["email"][0] }
+               return  {'detail': "email: "+ errors["user"]["email"][0] }
            
             if "username" in errors["user"]:
-               return  {'details': "username: "+ errors["user"]["username"][0] }
+               return  {'detail': "username: "+ errors["user"]["username"][0] }
            
             if "password" in errors["user"]:
-               return  {'details': "password: "+ errors["user"]["password"][0] }
+               return  {'detail': "password: "+ errors["user"]["password"][0] }
            
             if "is_pharmacy" in errors["user"]:
-               return  {'details': "is_pharmacy: "+ errors["user"]["is_pharmacy"][0] }
+               return  {'detail': "is_pharmacy: "+ errors["user"]["is_pharmacy"][0] }
            
         if "num_pharmacie" in errors:
-            return  {'details': "num_pharmacie: "+ errors["num_pharmacie"][0] }
+            return  {'detail': "num_pharmacie: "+ errors["num_pharmacie"][0] }
         
         if "nom_pharmacie" in errors:
-            return  {'details':"nom_pharmacie: "+  errors["nom_pharmacie"][0] }
+            return  {'detail':"nom_pharmacie: "+  errors["nom_pharmacie"][0] }
         
         if "adresse_pharmacie" in errors:
-            return  {'details':"adresse_pharmacie: "+  errors["adresse_pharmacie"][0] }
+            return  {'detail':"adresse_pharmacie: "+  errors["adresse_pharmacie"][0] }
         
         if "commune_pharmacie" in errors:
-            return  {'details':"commune_pharmacie: "+  errors["commune_pharmacie"][0] }
+            return  {'detail':"commune_pharmacie: "+  errors["commune_pharmacie"][0] }
         
         
         if "image" in errors:
-            return  {'details': "image: "+ errors["image"][0] }
+            return  {'detail': "image: "+ errors["image"][0] }
         
         if "n_cmu" in errors:
-            return  {'details':"n_cmu: "+  errors["n_cmu"][0] }
+            return  {'detail':"n_cmu: "+  errors["n_cmu"][0] }
         
         if "n_assurance" in errors:
-            return  {'details': "n_assurance: "+ errors["n_assurance"][0] }
+            return  {'detail': "n_assurance: "+ errors["n_assurance"][0] }
         
         if "ville_pharmacie" in errors:
-            return  {'details': "ville_pharmacie: "+ errors["ville_pharmacie"][0] }
+            return  {'detail': "ville_pharmacie: "+ errors["ville_pharmacie"][0] }
         
         if "numero_contact_pharmacie" in errors:
-            return  {'details':  "numero_contact_pharmacie: "+ errors["numero_contact_pharmacie"][0] }
+            return  {'detail':  "numero_contact_pharmacie: "+ errors["numero_contact_pharmacie"][0] }
         
         if "horaire_ouverture_pharmacie" in errors:
-            return  {'details':"horaire_ouverture_pharmacie: "+  errors["horaire_ouverture_pharmacie"][0] }
+            return  {'detail':"horaire_ouverture_pharmacie: "+  errors["horaire_ouverture_pharmacie"][0] }
  
     
 class PharmacieRegistrationAPIView(APIView):
@@ -247,7 +247,7 @@ class PharmacieRegistrationAPIView(APIView):
         responses={
             201: openapi.Response('Pharmacie enregistrée avec succès', examples={
                 'application/json': {
-                    'details': 'Pharmacie enregistrée avec succès!',
+                    'detail': 'Pharmacie enregistrée avec succès!',
                 },
             }),
             400: openapi.Response('Erreur de validation', examples={
@@ -288,7 +288,7 @@ class PharmacieRegistrationAPIView(APIView):
             data = {
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
-                'details': f"Pharmacie {new_pharmacie.nom_pharmacie} enregistrée avec succès!",
+                'detail': f"Pharmacie {new_pharmacie.nom_pharmacie} enregistrée avec succès!",
             }
             response = Response(data, status=status.HTTP_201_CREATED)
 
@@ -351,7 +351,7 @@ class UserLoginAPIView(APIView):
                 'application/json': {
                     'refresh': 'refresh_token',
                     'access': 'access_token',
-                    'details': 'Utilisateur connecté avec succès',
+                    'detail': 'Utilisateur connecté avec succès',
                 },
             }),
             401: openapi.Response('Échec de l\'authentification', examples={
@@ -379,7 +379,7 @@ class UserLoginAPIView(APIView):
                 response_data = {
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),
-                    'details': 'Utilisateur connecté avec succès',
+                    'detail': 'Utilisateur connecté avec succès',
                 }
 
                 return Response(response_data, status=status.HTTP_200_OK)

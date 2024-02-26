@@ -46,4 +46,5 @@ urlpatterns = [
     
     path('api/commande/client/detail/', CommandeDetailView.as_view(), name='commande_client_detail'),
     
+    
 ]
