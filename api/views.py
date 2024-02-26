@@ -150,9 +150,12 @@ class ClientRegistrationAPIView(APIView):
             )
 
             # Utilisez les tokens pour générer les cookies
+            refresh = RefreshToken.for_user(new_user)
             data = {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
                 'detail': f"Client {new_client.prenom} enregistré avec succès!",
-                'user_data':ClientRegistrationSerializer(new_client,many=True)
+                'user_data':ClientRegistrationSerializer(new_client,many=False).data
             }
             response = Response(data, status=status.HTTP_201_CREATED)
 
@@ -290,7 +293,8 @@ class PharmacieRegistrationAPIView(APIView):
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
                 'detail': f"Pharmacie {new_pharmacie.nom_pharmacie} enregistrée avec succès!",
-                'user_data':PharmacieRegistrationSerializer(new_pharmacie,many=True)
+                'user_data':PharmacieRegistrationSerializer(new_pharmacie,many=False).data
+                
             }
             response = Response(data, status=status.HTTP_201_CREATED)
 
