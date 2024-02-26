@@ -136,7 +136,7 @@ class ClientRegistrationAPIView(APIView):
             # Associez le nouvel utilisateur au modèle Client
             new_client = Client.objects.create(
                 user=new_user,
-                Prenom=serializer.validated_data['Prenom'],
+                prenom=serializer.validated_data['prenom'],
                 adresse=serializer.validated_data['adresse'],
                 ville=serializer.validated_data['ville'],
                 phone=serializer.validated_data['phone'],
@@ -151,7 +151,7 @@ class ClientRegistrationAPIView(APIView):
 
             # Utilisez les tokens pour générer les cookies
             data = {
-                'details': f"Client {new_client.Prenom} enregistré avec succès!",
+                'details': f"Client {new_client.prenom} enregistré avec succès!",
             }
             response = Response(data, status=status.HTTP_201_CREATED)
 
