@@ -33,6 +33,9 @@ class IsClientOrReadOnly(permissions.BasePermission):
         elif request.method == 'GET':
             # Les clients peuvent voir leurs propres commandes
             return request.user and request.user.is_authenticated and request.user.is_pharmacie == False
+        elif request.method in ('PUT', 'PATCH', 'DELETE'):
+            return request.user and request.user.is_authenticated and request.user.is_pharmacie == False
+            
         return False
 
 

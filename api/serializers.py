@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import Client,Pharmacie
-from .models import Categorie_Produit, Produit,Commande,Facture
+from .models import Categorie_Produit, Produit,Commande,Facture,Commandetous,Conseil
 import pdb
 
 class UserSerializer(serializers.ModelSerializer):
@@ -75,7 +75,8 @@ class get_pharmacieSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pharmacie
         fields = ['id', 'user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie', 'degarde']
-        read_only_fields = ['id', 'user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie', 'degarde']
+       
+  
   
   
   
@@ -89,8 +90,15 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 
-
-
+class CommandetousclientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Commandetous
+        fields='__all__'
+    
+class CommandetouspharmacieSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Commandetous
+        fields='__all__'
 
 
 class CategorieProduitSerializer(serializers.ModelSerializer):
@@ -144,3 +152,9 @@ class FactureSerializer(serializers.ModelSerializer):
     class Meta:
         model = Facture
         fields = '__all__'        
+        
+        
+class ConseilSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Conseil
+        fields = '__all__'

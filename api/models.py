@@ -124,6 +124,35 @@ class Produit(models.Model):
         return self.Nom
     
     
+    
+
+class Commandetous(models.Model):
+    STATUT_CHOICES = [
+        ('en_attente', 'En attente'),
+        ('en_cours', 'En cours de livraison'),
+        ('livree', 'Livrée'),
+        ('annulee', 'Annulée'),
+    ]
+
+    
+    pharmacie_id = models.ForeignKey(Pharmacie, on_delete=models.CASCADE)
+    client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    ordornance=models.CharField(max_length=255, blank=True, null=True)
+    nom_medicament=models.CharField(max_length=255, blank=True, null=True)
+    quantite = models.PositiveIntegerField(default=1)
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='en_attente')
+    en_attente=models.BooleanField(default=True)
+    terminer=models.BooleanField(default=False)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_livraison = models.DateTimeField(null=True, blank=True)
+    Facture=models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"Commande {self.id} - {self.client.prenom}"    
+
+
+
+
 
 class Commande(models.Model):
     STATUT_CHOICES = [
@@ -171,3 +200,14 @@ class Facture(models.Model):
 
     def __str__(self):
         return f"Facture {self.id} - Commande {self.id_Commande.produit.Nom}"    
+    
+    
+
+class Conseil(models.Model):
+    titre = models.CharField(max_length=100)
+    message = models.TextField()
+    pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE)
+    date_creation = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.titre    

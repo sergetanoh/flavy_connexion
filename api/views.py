@@ -1,5 +1,5 @@
 
-from .serializers import ClientRegistrationSerializer,UserLoginSerializer,PharmacieRegistrationSerializer,CategorieProduitSerializer, ProduitSerializer,CommandePharmacieSerializer,CommandeClientSerializer,FactureSerializer,UserSerializer,get_pharmacieSerializer
+from .serializers import ClientRegistrationSerializer,UserLoginSerializer,PharmacieRegistrationSerializer,CategorieProduitSerializer, ProduitSerializer,CommandePharmacieSerializer,CommandeClientSerializer,FactureSerializer,UserSerializer,get_pharmacieSerializer,CommandetousclientSerializer,CommandetouspharmacieSerializer,ConseilSerializer
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -9,6 +9,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed
 import datetime
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.http import Http404
 from django.conf import settings
 from django.http import HttpResponse
 from django.template import loader
@@ -20,7 +23,7 @@ from rest_framework.permissions import IsAuthenticated
 
 # Importez le modèle Facture et le sérialiseur FactureSerializer
 from .models import Facture
-from .models import Client,User,Pharmacie,Categorie_Produit,Produit,Commande
+from .models import Client,User,Pharmacie,Categorie_Produit,Produit,Commande,Commandetous,Conseil
 
 import jwt
 
@@ -868,3 +871,175 @@ class get_pharmacie(APIView):
         pharmacie=Pharmacie.objects.all()
         serializer=get_pharmacieSerializer(pharmacie,many=True)
         return Response(serializer.data)
+    
+    
+    
+class GetPharmacieGarde(APIView):
+    def get(self, request):
+        # Récupérer les pharmacies de garde
+        pharmacies_de_garde = Pharmacie.objects.filter(degarde=True)
+            # Serializer les pharmacies de garde si elles existent
+        serializer = get_pharmacieSerializer(pharmacies_de_garde, many=True)
+        return Response(serializer.data)
+    
+    
+class get_Conseil(APIView):
+    def get(self,request):
+        conseils = Conseil.objects.all()
+        serializer = ConseilSerializer(conseils, many=True)
+        return Response(serializer.data)
+
+
+class PasserCommandeClient(APIView):
+    permission_classes = [IsClientOrReadOnly]
+    def post(self, request):
+        clt=Client.objects.get(user=request.user.pk)
+        request.data['client'] = clt.pk
+        print(clt)
+        serializer =CommandetousclientSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def get(self, request):
+        
+        commandes = Commandetous.objects.filter(client=request.user.client_user)
+        serializer = CommandetousclientSerializer(commandes, many=True)
+        return Response(serializer.data)
+    
+    
+class GestionCommandeDetailClient(APIView):
+    permission_classes = [IsClientOrReadOnly]
+    def get_object(self, pk):
+        try:
+            return Commandetous.objects.get(pk=pk)
+        except Commandetous.DoesNotExist:
+            raise Http404
+    
+    def put(self, request, pk):
+        commande = self.get_object(pk)
+        
+        # Vérifier si la commande peut être modifiée
+        if commande.en_attente:
+            clt=Client.objects.get(user=request.user.pk)
+            request.data['client'] = clt.pk
+            serializer = CommandetousclientSerializer(commande, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"detail": "La commande ne peut pas être modifiée car elle n'est plus en attente."}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+    def delete(self, request, pk):
+        commande = self.get_object(pk)
+        
+        # Vérifier si la commande peut être supprimée
+        if commande.en_attente:
+            commande.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response({"detail": "La commande ne peut pas être supprimée car elle n'est plus en attente."}, status=status.HTTP_400_BAD_REQUEST)    
+        
+        
+        
+
+class CommandesPharmacietous(APIView):
+    permission_classes = [IsPharmacieCanModifyCommande]
+    
+    def get(self, request):
+        print("request.user") 
+        print(request.user) 
+       
+        commandes = Commandetous.objects.filter(pharmacie_id=request.user.pharmacie_user.pk)
+        
+        serializer = CommandetouspharmacieSerializer(commandes, many=True)
+        return Response(serializer.data)
+        
+
+class PharmacieDetail(APIView):
+    permission_classes = [IsPharmacieCanModifyCommande]
+    def get_object(self, pk):
+        try:
+            return Commandetous.objects.get(pk=pk)
+        except Commandetous.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk):
+        customer = self.get_object(pk)
+        serializer = CommandetouspharmacieSerializer(customer)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        commande = self.get_object(pk)
+        serializer = CommandetouspharmacieSerializer(commande, data=request.data)
+        if serializer.is_valid():
+            if request.data.get('statut')=='livree' and not commande.en_attente:
+                return Response({"detail": "La commande a déjà été validée."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            if request.data.get('Facture'):
+                # Valider la commande
+                commande.en_attente = False
+                commande.statut = 'en_cours'
+                commande.save()
+                return Response(serializer.data)
+            
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        customer = self.get_object(pk)
+        customer.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)        
+    
+    
+
+
+class ConseilDetail(APIView):
+    permission_classes = [IsPharmacieCanModifyCommande]
+    
+    def get_object(self, pk):
+        try:
+            return Conseil.objects.get(pk=pk)
+        except Conseil.DoesNotExist:
+            raise Http404
+
+    
+    def get(self, request, pk):
+        conseil = self.get_object(pk)
+        serializer = ConseilSerializer(conseil)
+        return Response(serializer.data)
+    
+    def post(self, request):
+        phar=Pharmacie.objects.get(user=request.user.pk)
+        request.data['pharmacie'] = phar.pk
+        serializer = ConseilSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+    def put(self, request, pk):
+        
+        conseil = self.get_object(pk)
+        phar=Pharmacie.objects.get(user=request.user.pk)
+        request.data['pharmacie'] = phar.pk
+        serializer = ConseilSerializer(conseil, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+    def delete(self, request, pk):
+        conseil = self.get_object(pk)
+        conseil.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)    
+    
+    
+    
+
