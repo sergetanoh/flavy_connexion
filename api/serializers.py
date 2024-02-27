@@ -99,6 +99,9 @@ class CommandetouspharmacieSerializer(serializers.ModelSerializer):
     class Meta:
         model=Commandetous
         fields='__all__'
+        
+        
+        
 
 
 class CategorieProduitSerializer(serializers.ModelSerializer):
