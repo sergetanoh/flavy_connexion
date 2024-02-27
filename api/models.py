@@ -129,8 +129,10 @@ class Produit(models.Model):
 class Commandetous(models.Model):
     STATUT_CHOICES = [
         ('en_attente', 'En attente'),
+        ('traite', 'Traité'),
         ('en_cours', 'En cours de livraison'),
         ('livree', 'Livrée'),
+        ('termine', 'Terminé'),
         ('annulee', 'Annulée'),
     ]
 
