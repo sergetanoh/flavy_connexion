@@ -524,7 +524,16 @@ class PasserCommandeClient(APIView):
     def post(self, request):
         clt=Client.objects.get(user=request.user.pk)
         request.data['client'] = clt.pk
-        print(clt)
+        
+        if clt.num_pharmacie:
+            pharmacie = Pharmacie.objects.filter(num_pharmacie= clt.num_pharmacie).first()
+            if pharmacie is None:
+                return Response({"detail": "Désolé, votre pharmacie est introuvable."}, status=status.HTTP_400_BAD_REQUEST)
+            request.data['pharmacie_id'] = pharmacie.pk
+        else:
+            return Response({"detail": "Désolé, veuillez d'abord renseigner le code de votre pharmacie."}, status=status.HTTP_400_BAD_REQUEST)
+            
+
         serializer =CommandetousclientSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
