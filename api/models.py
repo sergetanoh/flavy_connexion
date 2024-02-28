@@ -121,6 +121,7 @@ class Commande(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     ordornance=models.CharField(max_length=255, blank=True, null=True)
     nom_medicament=models.CharField(max_length=255, blank=True, null=True)
+    description=models.TextField(blank=True, null=True)
     quantite = models.PositiveIntegerField(default=1)
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='en_attente')
     en_attente=models.BooleanField(default=True)

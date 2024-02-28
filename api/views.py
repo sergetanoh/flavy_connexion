@@ -590,8 +590,10 @@ class CommandesPharmacietous(APIView):
     def get(self, request):
         print("request.user") 
         print(request.user) 
-       
+        print(request.user.pharmacie_user)
+        
         commandes = Commande.objects.filter(pharmacie_id=request.user.pharmacie_user.pk)
+        
         
         serializer = CommandetouspharmacieSerializer(commandes, many=True)
         return Response(serializer.data)
