@@ -147,45 +147,57 @@ class ClientRegistrationAPIView(APIView):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=False):
             # Créez et enregistrez un nouvel utilisateur
-            new_user = User.objects.create_user(
-                email=serializer.validated_data['user']['email'],
-                username=serializer.validated_data['user']['username'],
-                password=serializer.validated_data['user']['password'],
-                is_pharmacie=False
-            )
+            numero=serializer.validated_data['num_pharmacie']
+            if numero:
+                pharmacie=Pharmacie.objects.filter(num_pharmacie=numero).first()
+                print(pharmacie)
+                print(numero)
+                if  pharmacie is None:
+                    return Response({"detail": "Désolé le numero de la pharmacie est incorrecte."}, status=status.HTTP_400_BAD_REQUEST)
+                
+                new_user = User.objects.create_user(
+                    email=serializer.validated_data['user']['email'],
+                    username=serializer.validated_data['user']['username'],
+                    password=serializer.validated_data['user']['password'],
+                    is_pharmacie=False
+                )
 
-            # Associez le nouvel utilisateur au modèle Client
-            new_client = Client.objects.create(
-                user=new_user,
-                prenom=serializer.validated_data['prenom'],
-                adresse=serializer.validated_data['adresse'],
-                ville=serializer.validated_data['ville'],
-                phone=serializer.validated_data['phone'],
-                image=serializer.validated_data['image'],
-                n_cmu=serializer.validated_data['n_cmu'],
-                n_assurance=serializer.validated_data['n_assurance'],
-                sexe=serializer.validated_data['sexe'],
-                maladie_chronique=serializer.validated_data['maladie_chronique'],
-                poids=serializer.validated_data['poids'],
-                taille=serializer.validated_data['taille']
-            )
+                # Associez le nouvel utilisateur au modèle Client
+                
+                new_client = Client.objects.create(
+                    user=new_user,
+                    prenom=serializer.validated_data['prenom'],
+                    adresse=serializer.validated_data['adresse'],
+                    ville=serializer.validated_data['ville'],
+                    phone=serializer.validated_data['phone'],
+                    image=serializer.validated_data['image'],
+                    n_cmu=serializer.validated_data['n_cmu'],
+                    n_assurance=serializer.validated_data['n_assurance'],
+                    sexe=serializer.validated_data['sexe'],
+                    maladie_chronique=serializer.validated_data['maladie_chronique'],
+                    poids=serializer.validated_data['poids'],
+                    taille=serializer.validated_data['taille'],
+                    num_pharmacie=serializer.validated_data['num_pharmacie']
+                )
 
-            # Utilisez les tokens pour générer les cookies
-            refresh = RefreshToken.for_user(new_user)
-            data = {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-                'detail': f"Client {new_client.prenom} enregistré avec succès!",
-                'user_data':ClientRegistrationSerializer(new_client,many=False).data
-            }
-            response = Response(data, status=status.HTTP_201_CREATED)
+                # Utilisez les tokens pour générer les cookies
+                refresh = RefreshToken.for_user(new_user)
+                data = {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                    'detail': f"Client {new_client.prenom} enregistré avec succès!",
+                    'user_data':ClientRegistrationSerializer(new_client,many=False).data
+                }
+                response = Response(data, status=status.HTTP_201_CREATED)
 
-            return response
-        
-        list_erreur=has_key_client(serializer.errors)
+                return response
             
-        
-        return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
+            list_erreur=has_key_client(serializer.errors)
+                
+            
+            return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
+    
+    
  
  
  
@@ -299,7 +311,7 @@ class PharmacieRegistrationAPIView(APIView):
             
             new_pharmacie = Pharmacie.objects.create(
                 user=new_user,
-                num_pharmacie=null,
+                num_pharmacie="",
                 nom_pharmacie=serializer.validated_data['nom_pharmacie'],
                 adresse_pharmacie=serializer.validated_data['adresse_pharmacie'],
                 commune_pharmacie=serializer.validated_data['commune_pharmacie'],

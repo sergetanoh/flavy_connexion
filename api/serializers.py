@@ -29,7 +29,7 @@ class ClientRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Client
-        fields = ['user', 'prenom', 'adresse', 'ville', 'phone', 'image', 'n_cmu', 'n_assurance', 'sexe', 'maladie_chronique', 'poids', 'taille']
+        fields = ['user', 'prenom', 'adresse', 'ville', 'phone', 'image', 'n_cmu', 'n_assurance', 'sexe', 'maladie_chronique', 'poids', 'taille','num_pharmacie']
         extra_kwargs = {'date_inscription': {'read_only': True}}  # Empêche la modification de la date_inscription
 
     # On override la méthode create pour créer d'abord l'utilisateur puis le client
@@ -53,7 +53,7 @@ class PharmacieRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pharmacie
-        fields = ['user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie']
+        fields = ['user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie','num_pharmacie']
 
     def create(self, validated_data):
         # Extraire les données utilisateur du sérialiseur PharmacieSerializer
