@@ -148,11 +148,15 @@ class ClientRegistrationAPIView(APIView):
         if serializer.is_valid(raise_exception=False):
             # Créez et enregistrez un nouvel utilisateur
             numero=serializer.validated_data['num_pharmacie']
+            print("numero")
+            print(numero)
             if numero:
                 pharmacie=Pharmacie.objects.filter(num_pharmacie=numero).first()
+                print("pharmacie")
                 print(pharmacie)
-                print(numero)
-                if  pharmacie is None:
+                
+                
+                if  not pharmacie:
                     return Response({"detail": "Désolé le numero de la pharmacie est incorrecte."}, status=status.HTTP_400_BAD_REQUEST)
                 
                 new_user = User.objects.create_user(
