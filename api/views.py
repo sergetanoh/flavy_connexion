@@ -159,7 +159,7 @@ class ClientRegistrationAPIView(APIView):
                 if  not pharmacie:
                     return Response({"detail": "Désolé le numero de la pharmacie est incorrecte."}, status=status.HTTP_400_BAD_REQUEST)
                 
-                new_user = User.objects.create_user(
+            new_user = User.objects.create_user(
                     email=serializer.validated_data['user']['email'],
                     username=serializer.validated_data['user']['username'],
                     password=serializer.validated_data['user']['password'],
@@ -168,7 +168,7 @@ class ClientRegistrationAPIView(APIView):
 
                 # Associez le nouvel utilisateur au modèle Client
                 
-                new_client = Client.objects.create(
+            new_client = Client.objects.create(
                     user=new_user,
                     prenom=serializer.validated_data['prenom'],
                     adresse=serializer.validated_data['adresse'],
@@ -185,21 +185,21 @@ class ClientRegistrationAPIView(APIView):
                 )
 
                 # Utilisez les tokens pour générer les cookies
-                refresh = RefreshToken.for_user(new_user)
-                data = {
+            refresh = RefreshToken.for_user(new_user)
+            data = {
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),
                     'detail': f"Client {new_client.prenom} enregistré avec succès!",
                     'user_data':ClientRegistrationSerializer(new_client,many=False).data
                 }
-                response = Response(data, status=status.HTTP_201_CREATED)
+            response = Response(data, status=status.HTTP_201_CREATED)
 
-                return response
+            return response
             
-            list_erreur=has_key_client(serializer.errors)
+        list_erreur=has_key_client(serializer.errors)
                 
             
-            return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
+        return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
     
     
  
