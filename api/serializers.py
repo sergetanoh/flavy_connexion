@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import Client,Pharmacie
-from .models import Categorie_Produit, Produit,Commande,Facture,Commandetous,Conseil
+from .models import Commande,Commande,Conseil
 import pdb
 
 class UserSerializer(serializers.ModelSerializer):
@@ -92,69 +92,14 @@ class UserLoginSerializer(serializers.Serializer):
 
 class CommandetousclientSerializer(serializers.ModelSerializer):
     class Meta:
-        model=Commandetous
+        model=Commande
         fields='__all__'
     
 class CommandetouspharmacieSerializer(serializers.ModelSerializer):
     class Meta:
-        model=Commandetous
+        model=Commande
         fields='__all__'
-        
-        
-        
-
-
-class CategorieProduitSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Categorie_Produit
-        fields = ['id', 'Category', 'Description']
-
-class ProduitSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Produit
-        fields = ['id', 'Id_Category','Id_Pharmacie', 'Nom', 'Description', 'Prix_Unitaire', 'Quantite', 'Disponibilite', 'Client_Cible', 'Date_Exp', 'Date_Creation']
-
-
-class CommandeClientSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Commande
-        fields = ['id', 'produit','client', 'quantite', 'statut', 'date_livraison']
-        read_only_fields = ['id',  'date_livraison', 'date_creation', 'client','statut','generer_recu']
-
-        def update(self, instance, validated_data):
-        # Autoriser la modification uniquement des champs spécifiques
-            allowed_fields = ['produit','quantite']
-            for field in allowed_fields:
-                if field in validated_data:
-                    setattr(instance, field, validated_data[field])
-
-            instance.save()
-            return instance
-        
-        
-class CommandePharmacieSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Commande
-        fields = ['id', 'produit','client', 'quantite', 'statut', 'date_livraison']
-        read_only_fields = ['id', 'produit', 'quantite', 'date_creation', 'client']
-
-        def update(self, instance, validated_data):
-        # Autoriser la modification uniquement des champs spécifiques
-            allowed_fields = ['statut', 'date_livraison']
-            for field in allowed_fields:
-                if field in validated_data:
-                    setattr(instance, field, validated_data[field])
-
-            instance.save()
-            return instance        
-        
-        
-        
-
-class FactureSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Facture
-        fields = '__all__'        
+              
         
         
 class ConseilSerializer(serializers.ModelSerializer):

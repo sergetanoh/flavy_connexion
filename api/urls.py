@@ -5,11 +5,7 @@ from .views import (
 	
 	UserLogoutViewAPI,
  PharmacieRegistrationAPIView,
- ProduitAPIView,
- CategorieProduitAPIView,
-CommandeAPIViewPharmacie,
-CommandeAPIViewClient,
-CommandeDetailView,
+
 UserDetailView,
 get_pharmacie,
 GetPharmacieGarde
@@ -42,8 +38,7 @@ urlpatterns = [
  
  
  #################   
-    path('api/categories/', CategorieProduitAPIView.as_view(), name='categorie_produit_list'),
-    path('api/categories/<int:pk>/', CategorieProduitAPIView.as_view(), name='categorie_produit_detail'),
+    
     
     # URL pour gérer une commande spécifique pour le client
     path('clients/commandes/', PasserCommandeClient.as_view(), name='passer_commande_client'),
@@ -64,12 +59,4 @@ urlpatterns = [
     
 
 ]
-  # Produits
-"""path('api/products/', ProduitAPIView.as_view(), name='produit_list'),
-    path('api/products/<int:pk>/', ProduitAPIView.as_view(), name='produit_detail'),
-    
-    #commande
-    path('api/commande/pharmacie', CommandeAPIViewPharmacie.as_view(), name='commande_pharmacie'),
-    path('api/commande/client', CommandeAPIViewClient.as_view(), name='commande_client'),
-        path('api/commande/client/detail/', CommandeDetailView.as_view(), name='commande_client_detail'),
-    """
+ 

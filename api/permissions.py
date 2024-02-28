@@ -1,6 +1,5 @@
-from .models import Categorie_Produit, Produit
-from .serializers import CategorieProduitSerializer, ProduitSerializer
-from rest_framework.permissions import IsAuthenticated, BasePermission
+
+from rest_framework.permissions import  BasePermission
 from rest_framework import permissions
 
 
