@@ -1,0 +1,6 @@
+db.sqlite
+api/__pycache__
+api/migrations/__pycache__
+api_flav/__pycache__
+Pharmacie/__pycache__
+Pharmacie/migrations/__pycache__

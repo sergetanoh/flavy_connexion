@@ -19,6 +19,8 @@ from rest_framework import serializers
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.permissions import IsAuthenticated
+import re
+
 
 
 # Importez le modèle Facture et le sérialiseur FactureSerializer
@@ -76,6 +78,22 @@ def has_key_client(errors):
         if "poids" in errors:
             return  {'detail':"poids: "+  errors["poids"][0] }
 
+def slugify(chaine):
+    # Convertir en minuscules
+    chaine = chaine.lower()
+    # Remplacer les caractères spéciaux par des tirets
+    chaine = re.sub(r'\s+', '-', chaine)  # Remplacer les espaces par des tirets
+    chaine = re.sub(r'[^\w-]', '', chaine)  # Supprimer les caractères spéciaux sauf les tirets et les lettres/chiffres
+    return chaine
+
+
+def generer_code(name, nombre, longueur=6):
+    code = str(nombre)
+    if len(code) < longueur:
+        code = '0' * (longueur - len(code)) + code
+    name = slugify(name)
+    newCode = name.upper()+"-"+code
+    return newCode
 class ClientRegistrationAPIView(APIView):
     serializer_class = ClientRegistrationSerializer
 
@@ -219,7 +237,7 @@ def has_key_pharmacie(errors):
         if "horaire_ouverture_pharmacie" in errors:
             return  {'detail':"horaire_ouverture_pharmacie: "+  errors["horaire_ouverture_pharmacie"][0] }
  
-    
+
 class PharmacieRegistrationAPIView(APIView):
     serializer_class = PharmacieRegistrationSerializer
 
@@ -281,7 +299,7 @@ class PharmacieRegistrationAPIView(APIView):
             
             new_pharmacie = Pharmacie.objects.create(
                 user=new_user,
-                num_pharmacie=null,
+                num_pharmacie=ull,
                 nom_pharmacie=serializer.validated_data['nom_pharmacie'],
                 adresse_pharmacie=serializer.validated_data['adresse_pharmacie'],
                 commune_pharmacie=serializer.validated_data['commune_pharmacie'],
@@ -289,6 +307,14 @@ class PharmacieRegistrationAPIView(APIView):
                 numero_contact_pharmacie=serializer.validated_data['numero_contact_pharmacie'],
                 horaire_ouverture_pharmacie=serializer.validated_data['horaire_ouverture_pharmacie'],
             )
+            
+            # Enregistrer code pharmacie
+            code = generer_code(new_pharmacie.nom_pharmacie, new_pharmacie.pk, longueur=6)
+            new_pharmacie.num_pharmacie = code
+            new_pharmacie.save()
+             
+            
+            generer_code(new_pharmacie)
             refresh = RefreshToken.for_user(new_user)
 
             print(f"Pharmacie {new_pharmacie.nom_pharmacie} enregistrée avec succès!")
