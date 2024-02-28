@@ -299,7 +299,7 @@ class PharmacieRegistrationAPIView(APIView):
             
             new_pharmacie = Pharmacie.objects.create(
                 user=new_user,
-                num_pharmacie=ull,
+                num_pharmacie=null,
                 nom_pharmacie=serializer.validated_data['nom_pharmacie'],
                 adresse_pharmacie=serializer.validated_data['adresse_pharmacie'],
                 commune_pharmacie=serializer.validated_data['commune_pharmacie'],
@@ -310,11 +310,11 @@ class PharmacieRegistrationAPIView(APIView):
             
             # Enregistrer code pharmacie
             code = generer_code(new_pharmacie.nom_pharmacie, new_pharmacie.pk, longueur=6)
+            print(code)
             new_pharmacie.num_pharmacie = code
             new_pharmacie.save()
-             
             
-            generer_code(new_pharmacie)
+             
             refresh = RefreshToken.for_user(new_user)
 
             print(f"Pharmacie {new_pharmacie.nom_pharmacie} enregistrée avec succès!")
