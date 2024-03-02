@@ -578,7 +578,7 @@ class GestionCommandeDetailClient(APIView):
         # Vérifier si la commande peut être supprimée
         if commande.en_attente:
             commande.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response({"detail": "Commande supprimée avec succès"}, status=status.HTTP_200_OK)
         else:
             return Response({"detail": "La commande ne peut pas être supprimée car elle n'est plus en attente."}, status=status.HTTP_400_BAD_REQUEST)    
         
@@ -644,7 +644,7 @@ class PharmacieDetail(APIView):
     def delete(self, request, pk):
         customer = self.get_object(pk)
         customer.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)        
+        return Response({"detail": "Utilisateur supprimée avec succès"}, status=status.HTTP_200_OK)        
     
     
 
@@ -689,7 +689,7 @@ class ConseilDetail(APIView):
     def delete(self, request, pk):
         conseil = self.get_object(pk)
         conseil.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)    
+        return Response({"detail": "Conseil supprimé avec succès"}, status=status.HTTP_200_OK)    
     
 
 class RechercheList(APIView):
@@ -770,4 +770,4 @@ class RechercheDetail(APIView):
             if recherche.client.pk != request.user.client_user.pk:
                 return Response({"detail":"Désolé, vous ne pouvez effectuer à cette action"}, status=status.HTTP_403_FORBIDDEN)
         recherche.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"detail": "Recherche supprimée avec succès"},status=status.HTTP_200_OK)
