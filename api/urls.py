@@ -57,6 +57,7 @@ urlpatterns = [
     path("get-pharmacie/", get_pharmacie.as_view(), name="get_pharmacie"),
     path("get-pharmacie-garde/", GetPharmacieGarde.as_view(), name="get_pharmaciegarde"),
 
+    path('conseils/', ConseilDetail.as_view(), name='conseil_create'),
     path('conseils/all', get_Conseil.as_view(), name='conseil_get_all'),
     path('conseils/<int:pk>/', ConseilDetail.as_view(), name='conseil_detail'),
     
