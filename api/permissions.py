@@ -47,3 +47,11 @@ class IsPharmacieCanModifyCommande(permissions.BasePermission):
         return request.user and request.user.is_authenticated and request.user.is_pharmacie == True
 
 
+class IsPharmacieOrClient(permissions.BasePermission):
+    """
+    Permission personnalisée pour autoriser uniquement les pharmacies à modifier ou supprimer des commandes.
+    """
+    def has_object_permission(self, request, view, obj):
+        # Seul les clients ou les pharmacies peuvent effectuer des actions
+        return request.user and request.user.is_authenticated
+

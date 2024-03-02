@@ -30,7 +30,7 @@ from .models import Client,User,Pharmacie,Commande,Conseil, Recherche
 
 import jwt
 
-from .permissions import IsPharmacieOrReadOnly,IsSuperUserOrReadOnly,IsClientOrReadOnly,IsPharmacieCanModifyCommande
+from .permissions import IsPharmacieOrReadOnly,IsSuperUserOrReadOnly,IsClientOrReadOnly,IsPharmacieCanModifyCommande, IsPharmacieOrClient
 from .backends import EmailBackend
 
 def has_key_client(errors):
@@ -693,17 +693,20 @@ class ConseilDetail(APIView):
     
 
 class RechercheList(APIView):
+    permission_classes = [IsPharmacieOrClient]
+    
     def get(self, request):
-        if(request.user.is_pharmacie == True){
-            recherches = Recherche.objects.filter(Q(pharmacie_id=request.user.pharmacie_user.pk) | Q(en_attente=True))
-        }else{
-            recherches = Recherche.objects.filter(client=request.user.client_user.pk)
-        }
+        if request.user.is_pharmacie == True:
+            recherches = Recherche.objects.filter(Q(pharmacie_id=request.user.pharmacie_user.pk) | Q(en_attente=True)).order_by("-pk")
+        else:
+            recherches = Recherche.objects.filter(client=request.user.client_user.pk).order_by("-pk")
+        
         
         serializer = RechercheSerializer(recherches, many=True)
         return Response(serializer.data)
 
     def post(self, request):
+        request.data["client"]=request.user.client_user.pk
         serializer = RechercheSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -711,6 +714,8 @@ class RechercheList(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class RechercheDetail(APIView):
+    permission_classes = [IsPharmacieOrClient]
+    
     def get_object(self, pk):
         try:
             return Recherche.objects.get(pk=pk)
@@ -720,12 +725,39 @@ class RechercheDetail(APIView):
 
     def get(self, request, pk):
         recherche = self.get_object(pk)
+        
+        # Verifier si pharmacie
+        if request.user.is_pharmacie == True :
+            # Verifier si recherche traitée par d'autre pharmacie
+            if recherche.en_attente == False and recherche.pharmacie_id != request.user.pharmacie_user.pk:
+                return Response({"detail":"Désolé, vous ne pouvez accéder à cette recherche"}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            if recherche.client != request.user.client_user.pk:
+                return Response({"detail":"Désolé, vous ne pouvez accéder à cette recherche"}, status=status.HTTP_403_FORBIDDEN)
         serializer = RechercheSerializer(recherche)
         return Response(serializer.data)
 
     def put(self, request, pk):
         recherche = self.get_object(pk)
-        request.data['client'] = recherche.client
+        request.data['client'] = recherche.client.pk
+        if recherche.terminer == True:
+            return Response({"detail":"Cette recherche est déjà terminée"}, status=status.HTTP_400_BAD_REQUEST)
+        if request.user.is_pharmacie == True :
+            # return Response({"detail":"Désolé, vous ne pouvez effectuer à cette action"}, status=status.HTTP_403_FORBIDDEN)
+            if  not('facture' in request.data) or not(request.data['facture']):
+                return Response({"detail":"La facture est obligatoire"}, status=status.HTTP_400_BAD_REQUEST)
+            request.data['statut'] = "traite"
+            request.data['en_attente'] = False
+            request.data['pharmacie_id'] = request.user.pharmacie_user.pk
+            
+        if request.user.is_pharmacie != True :
+            if recherche.client.pk != request.user.client_user.pk:
+                return Response({"detail":"Désolé, vous ne pouvez effectuer à cette action"}, status=status.HTTP_403_FORBIDDEN)
+            print('terminer' in request.data)
+            if  not('terminer' in request.data) or request.data['terminer'] == False:
+                return Response({"detail":"Requete incorrecte"}, status=status.HTTP_400_BAD_REQUEST)
+    
+        
         serializer = RechercheSerializer(recherche, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -734,5 +766,8 @@ class RechercheDetail(APIView):
 
     def delete(self, request, pk):
         recherche = self.get_object(pk)
+        if request.user.is_pharmacie != True :
+            if recherche.client != request.user.client_user.pk:
+                return Response({"detail":"Désolé, vous ne pouvez effectuer à cette action"}, status=status.HTTP_403_FORBIDDEN)
         recherche.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

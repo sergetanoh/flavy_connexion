@@ -123,7 +123,7 @@ class Conseil(models.Model):
 class Recherche(models.Model):
     STATUT_CHOICES = [
         ('en_attente', 'En attente'),
-        ('trouve', 'Trouvé'),
+        ('traite', 'Traité'),
         ('termine', 'Terminé'),
         ('annulee', 'Annulée'),
     ]
