@@ -732,7 +732,7 @@ class RechercheDetail(APIView):
             if recherche.en_attente == False and recherche.pharmacie_id != request.user.pharmacie_user.pk:
                 return Response({"detail":"Désolé, vous ne pouvez accéder à cette recherche"}, status=status.HTTP_403_FORBIDDEN)
         else:
-            if recherche.client != request.user.client_user.pk:
+            if recherche.client.pk != request.user.client_user.pk:
                 return Response({"detail":"Désolé, vous ne pouvez accéder à cette recherche"}, status=status.HTTP_403_FORBIDDEN)
         serializer = RechercheSerializer(recherche)
         return Response(serializer.data)
@@ -767,7 +767,7 @@ class RechercheDetail(APIView):
     def delete(self, request, pk):
         recherche = self.get_object(pk)
         if request.user.is_pharmacie != True :
-            if recherche.client != request.user.client_user.pk:
+            if recherche.client.pk != request.user.client_user.pk:
                 return Response({"detail":"Désolé, vous ne pouvez effectuer à cette action"}, status=status.HTTP_403_FORBIDDEN)
         recherche.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
