@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import Client,Pharmacie
-from .models import Commande,Commande,Conseil
+from .models import Commande,Commande,Conseil, Recherche
 import pdb
 
 class UserSerializer(serializers.ModelSerializer):
@@ -105,4 +105,10 @@ class CommandetouspharmacieSerializer(serializers.ModelSerializer):
 class ConseilSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conseil
+        fields = '__all__'
+        
+
+class RechercheSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recherche
         fields = '__all__'

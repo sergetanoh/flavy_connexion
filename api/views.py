@@ -1,5 +1,5 @@
 
-from .serializers import ClientRegistrationSerializer,UserLoginSerializer,PharmacieRegistrationSerializer,UserSerializer,get_pharmacieSerializer,CommandetousclientSerializer,CommandetouspharmacieSerializer,ConseilSerializer
+from .serializers import ClientRegistrationSerializer,UserLoginSerializer,PharmacieRegistrationSerializer,UserSerializer,get_pharmacieSerializer,CommandetousclientSerializer,CommandetouspharmacieSerializer,ConseilSerializer, RechercheSerializer
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -19,13 +19,14 @@ from rest_framework import serializers
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q
 import re
 
 
 
 # Importez le modèle Facture et le sérialiseur FactureSerializer
 
-from .models import Client,User,Pharmacie,Commande,Conseil
+from .models import Client,User,Pharmacie,Commande,Conseil, Recherche
 
 import jwt
 
@@ -690,6 +691,48 @@ class ConseilDetail(APIView):
         conseil.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)    
     
-    
-    
 
+class RechercheList(APIView):
+    def get(self, request):
+        if(request.user.is_pharmacie == True){
+            recherches = Recherche.objects.filter(Q(pharmacie_id=request.user.pharmacie_user.pk) | Q(en_attente=True))
+        }else{
+            recherches = Recherche.objects.filter(client=request.user.client_user.pk)
+        }
+        
+        serializer = RechercheSerializer(recherches, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = RechercheSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class RechercheDetail(APIView):
+    def get_object(self, pk):
+        try:
+            return Recherche.objects.get(pk=pk)
+        except Recherche.DoesNotExist:
+            # raise Http404
+            return Response({"detail":"Recherche introuvable"}, status=status.HTTP_404_NOT_FOUND)
+
+    def get(self, request, pk):
+        recherche = self.get_object(pk)
+        serializer = RechercheSerializer(recherche)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        recherche = self.get_object(pk)
+        request.data['client'] = recherche.client
+        serializer = RechercheSerializer(recherche, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        recherche = self.get_object(pk)
+        recherche.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

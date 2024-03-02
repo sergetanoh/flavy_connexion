@@ -33,15 +33,6 @@ class UserManager(BaseUserManager):
         return user
 
 
-
-
-
-
-
-
-
-
-
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(max_length=100, unique=True)
     username = models.CharField(max_length=100)
@@ -80,9 +71,6 @@ class Client(models.Model):
     num_pharmacie=models.CharField(max_length=255, blank=True, null=True)
     
     
-
-
-
 class Pharmacie(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE,  related_name='pharmacie_user')
     num_pharmacie = models.CharField(max_length=20, blank=True, null=True)
@@ -95,17 +83,6 @@ class Pharmacie(models.Model):
     degarde=models.BooleanField(default=False)
     
 
-
-    
-    
-    
-    
-
-
-  
-    
-    
-
 class Commande(models.Model):
     STATUT_CHOICES = [
         ('en_attente', 'En attente'),
@@ -116,7 +93,6 @@ class Commande(models.Model):
         ('annulee', 'Annulée'),
     ]
 
-    
     pharmacie_id = models.ForeignKey(Pharmacie, on_delete=models.CASCADE)
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     ordornance=models.CharField(max_length=255, blank=True, null=True)
@@ -141,4 +117,28 @@ class Conseil(models.Model):
     date_creation = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.titre    
+        return self.titre
+    
+    
+class Recherche(models.Model):
+    STATUT_CHOICES = [
+        ('en_attente', 'En attente'),
+        ('trouve', 'Trouvé'),
+        ('termine', 'Terminé'),
+        ('annulee', 'Annulée'),
+    ]
+    client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    ordonnance = models.CharField(max_length=255, blank=True, null=True)
+    nom_medicament = models.CharField(max_length=255, blank=True, null=True)
+    quantite =  models.PositiveIntegerField(default=1)
+    description = models.TextField(blank=True, null=True)
+    statut = models.CharField(max_length=255, choices=STATUT_CHOICES, default='en_attente')
+    en_attente = models.BooleanField(default=True)
+    terminer = models.BooleanField(default=False)
+    pharmacie_id = models.ForeignKey(Pharmacie, on_delete=models.SET_NULL, blank=True, null=True)
+    facture =  models.TextField(blank=True, null=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return "Recherche #"+str(self.pk)

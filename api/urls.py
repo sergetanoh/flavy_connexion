@@ -4,17 +4,20 @@ from .views import (
 	UserLoginAPIView,
 	
 	UserLogoutViewAPI,
- PharmacieRegistrationAPIView,
+    PharmacieRegistrationAPIView,
 
-UserDetailView,
-get_pharmacie,
-GetPharmacieGarde
-,PasserCommandeClient,
-GestionCommandeDetailClient,
-PharmacieDetail,
-CommandesPharmacietous,
-ConseilDetail,
-get_Conseil
+    UserDetailView,
+    get_pharmacie,
+    GetPharmacieGarde,
+    PasserCommandeClient,
+    GestionCommandeDetailClient,
+    PharmacieDetail,
+    CommandesPharmacietous,
+    ConseilDetail,
+    get_Conseil,
+    
+    RechercheList,
+    RechercheDetail
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -58,5 +61,7 @@ urlpatterns = [
     path('conseils/<int:pk>/', ConseilDetail.as_view(), name='conseil_detail'),
     
 
+    path('recherches/', RechercheList.as_view(), name='recherche-list'),
+    path('recherches/<int:pk>/', RechercheDetail.as_view(), name='recherche-detail'),
 ]
  
