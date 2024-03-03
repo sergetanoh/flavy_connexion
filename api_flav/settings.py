@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-7_ol1^ly-i^z0+m7n=mt^obn8m&xvi&s9990*#^!1r=z@=7#j4
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['flavy.pythonanywhere.com']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1','flavy.pythonanywhere.com']
 
 # Application definition
 
@@ -133,9 +133,9 @@ MIDDLEWARE = [
 ]
 
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000/',
-]
+# CORS_ALLOWED_ORIGINS = [
+#     'http://localhost:3000/',
+# ]
 
 ROOT_URLCONF = 'api_flav.urls'
 

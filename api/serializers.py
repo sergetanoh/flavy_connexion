@@ -96,6 +96,7 @@ class CommandetousclientSerializer(serializers.ModelSerializer):
         fields='__all__'
     
 class CommandetouspharmacieSerializer(serializers.ModelSerializer):
+    client = ClientRegistrationSerializer()
     class Meta:
         model=Commande
         fields='__all__'
