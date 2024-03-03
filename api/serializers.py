@@ -8,7 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
 	password = serializers.CharField(max_length=100, min_length=8, style={'input_type': 'password'})
 	class Meta:
 		model = get_user_model()
-		fields = ['email', 'username']
+		fields = ['email', 'username', 'password']
 
 	def create(self, validated_data):
 		user_password = validated_data.get('password', None)
