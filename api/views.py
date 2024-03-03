@@ -589,11 +589,7 @@ class CommandesPharmacietous(APIView):
     permission_classes = [IsPharmacieCanModifyCommande]
     
     def get(self, request):
-        print("request.user") 
-        print(request.user) 
-        print(request.user.pharmacie_user)
-        
-        commandes = Commande.objects.filter(pharmacie_id=request.user.pharmacie_user.pk)
+        commandes = Commande.objects.filter(pharmacie_id=request.user.pharmacie_user.pk).select_related('client')
         
         
         serializer = CommandetouspharmacieSerializer(commandes, many=True)
