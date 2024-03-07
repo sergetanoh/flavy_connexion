@@ -1,5 +1,5 @@
 
-from .serializers import ClientRegistrationSerializer,UserLoginSerializer,PharmacieRegistrationSerializer,UserSerializer,get_pharmacieSerializer,CommandetousclientSerializer,CommandetouspharmacieSerializer,ConseilSerializer, RechercheSerializer
+from .serializers import ClientSerializer, ClientUpdateSerializer ,UserLoginSerializer,PharmacieRegistrationSerializer, PharmacieUpdateSerializer, UserSerializer,get_pharmacieSerializer,CommandetousclientSerializer,CommandetouspharmacieSerializer,ConseilSerializer, RechercheSerializer
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -96,7 +96,8 @@ def generer_code(name, nombre, longueur=6):
     newCode = name.upper()+"-"+code
     return newCode
 class ClientRegistrationAPIView(APIView):
-    serializer_class = ClientRegistrationSerializer
+    serializer_class = ClientSerializer
+    serializer_update = ClientUpdateSerializer
 
     example_request = {
         "user": {
@@ -119,7 +120,7 @@ class ClientRegistrationAPIView(APIView):
     }
 
     @swagger_auto_schema(
-        request_body=ClientRegistrationSerializer,
+        request_body=ClientSerializer,
         manual_parameters=[
             openapi.Parameter(
                 'example',
@@ -144,6 +145,7 @@ class ClientRegistrationAPIView(APIView):
         operation_summary='Enregistrement du client',
         operation_description='Cette vue vous permet d\'enregistrer un nouveau client.',
     )
+    
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=False):
@@ -191,7 +193,7 @@ class ClientRegistrationAPIView(APIView):
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),
                     'detail': f"Client {new_client.prenom} enregistré avec succès!",
-                    'user_data':ClientRegistrationSerializer(new_client,many=False).data
+                    'user_data':ClientSerializer(new_client,many=False).data
                 }
             response = Response(data, status=status.HTTP_201_CREATED)
 
@@ -201,8 +203,62 @@ class ClientRegistrationAPIView(APIView):
                 
             
         return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
+
+class ClientUpdateAPIView(APIView):
+    serializer_update = ClientUpdateSerializer
     
-    
+    def put(self, request):
+        serializer = self.serializer_update(data=request.data)
+        if serializer.is_valid(raise_exception=False):
+            # Créez et enregistrez un nouvel utilisateur
+            numero=serializer.validated_data['num_pharmacie']
+            
+            if numero:
+                pharmacie=Pharmacie.objects.filter(num_pharmacie=numero).first()
+            
+                if  not pharmacie:
+                    return Response({"detail": "Désolé le numero de la pharmacie est incorrecte."}, status=status.HTTP_400_BAD_REQUEST)
+                
+            user = request.user
+            if not user:
+                return Response({'detail': "Désolé, vous n'êtes pas authentifié."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Modifier mot de passe User
+            if 'user' in request.data and 'password' in request.data['user']:
+                user.set_password(request.data['user']['password'])
+                user.save()
+                
+            
+            client = request.user.client_user
+           
+            client.prenom=serializer.validated_data['prenom']
+            client.adresse=serializer.validated_data['adresse']
+            client.ville=serializer.validated_data['ville']
+            client.phone=serializer.validated_data['phone']
+            client.image=serializer.validated_data['image']
+            client.n_cmu=serializer.validated_data['n_cmu']
+            client.n_assurance=serializer.validated_data['n_assurance']
+            client.sexe=serializer.validated_data['sexe']
+            client.maladie_chronique=serializer.validated_data['maladie_chronique']
+            client.poids=serializer.validated_data['poids']
+            client.taille=serializer.validated_data['taille']
+            client.num_pharmacie=serializer.validated_data['num_pharmacie']
+            client.save()
+                
+
+                # Utilisez les tokens pour générer les cookies
+            refresh = RefreshToken.for_user(user)
+            data = {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                    'detail': f"Client {new_client.prenom} modifié avec succès!",
+                    'user_data':ClientSerializer(client,many=False).data
+                }
+            return Response(data, status=status.HTTP_200_OK)
+
+            
+        list_erreur=has_key_client(serializer.errors)
+        return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
  
  
  
@@ -301,6 +357,7 @@ class PharmacieRegistrationAPIView(APIView):
         operation_summary='Enregistrement de la pharmacie',
         operation_description='Cette vue vous permet d\'enregistrer une nouvelle pharmacie.',
     )
+    
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=False):
@@ -350,6 +407,54 @@ class PharmacieRegistrationAPIView(APIView):
             
         
         return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
+
+class PharmacieUpdateAPIView(APIView):
+    serializer_class = PharmacieUpdateSerializer
+
+    permission_classes = [IsAuthenticated]
+    def put(self, request):
+        
+        serializer = self.serializer_class(data=request.data)
+        if request.user.is_pharmacie != True:
+            return Response({ 'detail': "Vous ne pouvez pas effectuer cette action"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if serializer.is_valid(raise_exception=False):
+            #   Modifier et enregistrez un nouvel utilisateur
+            user = request.user
+            if 'user' in request.data and 'password' in request.data['user']:
+                user.set_password(request.data['user']['password'])
+                user.save()
+            
+
+            # Modifier les information du modèle Pharmacie
+            pharmacie = request.user.pharmacie_user
+           
+            pharmacie.nom_pharmacie=serializer.validated_data['nom_pharmacie']
+            pharmacie.adresse_pharmacie=serializer.validated_data['adresse_pharmacie']
+            pharmacie.commune_pharmacie=serializer.validated_data['commune_pharmacie']
+            pharmacie.ville_pharmacie=serializer.validated_data['ville_pharmacie']
+            pharmacie.numero_contact_pharmacie=serializer.validated_data['numero_contact_pharmacie']
+            pharmacie.horaire_ouverture_pharmacie=serializer.validated_data['horaire_ouverture_pharmacie']
+            pharmacie.save()
+            
+             
+            refresh = RefreshToken.for_user(user)
+
+            
+            data = {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'detail': f"Information Pharmacie {pharmacie.nom_pharmacie} modifiée avec succès!",
+                'user_data':PharmacieRegistrationSerializer(pharmacie,many=False).data
+                
+            }
+            response = Response(data, status=status.HTTP_201_CREATED)
+
+            return response
+        list_erreur=has_key_pharmacie(serializer.errors)
+            
+        
+        return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
         
 
 
@@ -369,12 +474,6 @@ class UserDetailView(RetrieveAPIView):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
-
-
-
-
-
-
 
 
 
@@ -429,11 +528,17 @@ class UserLoginAPIView(APIView):
         if user_instance is not None:
             if user_instance.is_active:
                 refresh = RefreshToken.for_user(user_instance)
-
+                
+                if user_instance.is_pharmacie == True:
+                    data = PharmacieRegistrationSerializer(user_instance.pharmacie_user,many=False).data
+                else:
+                    data = ClientSerializer(user_instance.client_user,many=False).data
+                   
                 response_data = {
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),
                     'detail': 'Utilisateur connecté avec succès',
+                    'user_data': data
                 }
 
                 return Response(response_data, status=status.HTTP_200_OK)
@@ -443,7 +548,6 @@ class UserLoginAPIView(APIView):
             raise AuthenticationFailed('Email ou mot de passe incorrect.')
         
         
-
 class UserLogoutViewAPI(APIView):
     authentication_classes = (JWTAuthentication,)
     permission_classes = (AllowAny,)
@@ -495,15 +599,13 @@ class UserLogoutViewAPI(APIView):
         }
         return response
 
-
 class get_pharmacie(APIView):
   def get(self,request):
         pharmacie=Pharmacie.objects.all()
         serializer=get_pharmacieSerializer(pharmacie,many=True)
         return Response(serializer.data)
     
-    
-    
+      
 class GetPharmacieGarde(APIView):
     def get(self, request):
         # Récupérer les pharmacies de garde

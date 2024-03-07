@@ -18,7 +18,7 @@ class UserSerializer(serializers.ModelSerializer):
 		return db_instance
 
 # Ajoutez un champ 'fullname' dans le serializer ClientSerializer
-class ClientRegistrationSerializer(serializers.ModelSerializer):
+class ClientSerializer(serializers.ModelSerializer):
     SEXE_CHOICES = [
         ('Homme', 'Homme'),
         ('Femme', 'Femme'),
@@ -44,6 +44,18 @@ class ClientRegistrationSerializer(serializers.ModelSerializer):
         client = Client.objects.create(user=user, **validated_data)
 
         return client
+    
+
+class ClientUpdateSerializer(serializers.ModelSerializer):
+    SEXE_CHOICES = [
+        ('Homme', 'Homme'),
+        ('Femme', 'Femme'),
+    ]
+    
+    class Meta:
+        model = Client
+        fields = ['prenom', 'adresse', 'ville', 'phone', 'image', 'n_cmu', 'n_assurance', 'sexe', 'maladie_chronique', 'poids', 'taille','num_pharmacie']
+        extra_kwargs = {'date_inscription': {'read_only': True}}  # Empêche la modification de la date_inscription
 
 
 
@@ -69,6 +81,15 @@ class PharmacieRegistrationSerializer(serializers.ModelSerializer):
         pharmacie = Pharmacie.objects.create(user=user, **validated_data)
         
         return pharmacie
+    
+class PharmacieUpdateSerializer(serializers.ModelSerializer):
+    # user = UserSerializer()
+
+    class Meta:
+        model = Pharmacie
+        fields = ['num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie']
+
+
 
 
 class get_pharmacieSerializer(serializers.ModelSerializer):
@@ -96,7 +117,7 @@ class CommandetousclientSerializer(serializers.ModelSerializer):
         fields='__all__'
     
 class CommandetouspharmacieSerializer(serializers.ModelSerializer):
-    client = ClientRegistrationSerializer()
+    client = ClientSerializer()
     class Meta:
         model=Commande
         fields='__all__'

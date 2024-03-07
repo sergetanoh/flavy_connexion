@@ -1,10 +1,12 @@
 from django.urls import path
 from .views import (
 	ClientRegistrationAPIView,
+    ClientUpdateAPIView,
 	UserLoginAPIView,
 	
 	UserLogoutViewAPI,
     PharmacieRegistrationAPIView,
+    PharmacieUpdateAPIView,
 
     UserDetailView,
     get_pharmacie,
@@ -30,19 +32,21 @@ urlpatterns = [
 	path('client/register/', ClientRegistrationAPIView.as_view()),
 	path('client/login/', UserLoginAPIView.as_view()),
 	path('client/logout/', UserLogoutViewAPI.as_view()),
-	path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+	path('client/update/', ClientUpdateAPIView.as_view()),
+ 
+	# path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    # path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
  
  
     path('pharmacie/register/', PharmacieRegistrationAPIView.as_view()),
 	path('pharmacie/login/', UserLoginAPIView.as_view()),
 	path('pharmacie/logout/', UserLogoutViewAPI.as_view()),
+	path('pharmacie/update/', PharmacieUpdateAPIView.as_view()),
  
  
- #################   
-    
-    
+ 
+    #################   COMMANDES #################
     # URL pour gérer une commande spécifique pour le client
     path('clients/commandes/', PasserCommandeClient.as_view(), name='passer_commande_client'),
     path('clients/commandes/<int:pk>/', GestionCommandeDetailClient.as_view(), name='gestion_commande_detail_client'),
