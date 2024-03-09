@@ -65,7 +65,7 @@ class PharmacieRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pharmacie
-        fields = ['user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie','num_pharmacie']
+        fields = ['user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie','num_pharmacie', 'degarde']
 
     def create(self, validated_data):
         # Extraire les données utilisateur du sérialiseur PharmacieSerializer

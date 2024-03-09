@@ -82,6 +82,9 @@ class Pharmacie(models.Model):
     horaire_ouverture_pharmacie = models.CharField(max_length=255, blank=True, null=True)
     degarde=models.BooleanField(default=False)
     
+    def __str__(self):
+        return f"{self.nom_pharmacie}"
+    
 
 class Commande(models.Model):
     STATUT_CHOICES = [

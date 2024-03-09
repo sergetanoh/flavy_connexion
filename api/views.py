@@ -425,16 +425,22 @@ class PharmacieUpdateAPIView(APIView):
                 user.set_password(request.data['user']['password'])
                 user.save()
             
-
+            # validateData = serializer.validated_data
             # Modifier les information du modèle Pharmacie
+            # if 'user' in validateData:
+            #      user_data = validateData.pop('user')
+                
             pharmacie = request.user.pharmacie_user
+            # print(pharmacie)
+            # pharmacie.update(**validateData)
            
-            pharmacie.nom_pharmacie=serializer.validated_data['nom_pharmacie']
-            pharmacie.adresse_pharmacie=serializer.validated_data['adresse_pharmacie']
-            pharmacie.commune_pharmacie=serializer.validated_data['commune_pharmacie']
-            pharmacie.ville_pharmacie=serializer.validated_data['ville_pharmacie']
-            pharmacie.numero_contact_pharmacie=serializer.validated_data['numero_contact_pharmacie']
-            pharmacie.horaire_ouverture_pharmacie=serializer.validated_data['horaire_ouverture_pharmacie']
+            pharmacie.nom_pharmacie=request.data['nom_pharmacie']
+            pharmacie.adresse_pharmacie=request.data['adresse_pharmacie']
+            pharmacie.commune_pharmacie=request.data['commune_pharmacie']
+            pharmacie.ville_pharmacie=request.data['ville_pharmacie']
+            pharmacie.numero_contact_pharmacie=request.data['numero_contact_pharmacie']
+            pharmacie.horaire_ouverture_pharmacie=request.data['horaire_ouverture_pharmacie']
+            pharmacie.degarde=request.data['degarde']
             pharmacie.save()
             
              
