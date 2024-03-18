@@ -1,5 +1,5 @@
 
-from .serializers import ClientSerializer, ClientUpdateSerializer ,UserLoginSerializer,PharmacieRegistrationSerializer, PharmacieUpdateSerializer, UserSerializer,get_pharmacieSerializer,CommandetousclientSerializer,CommandetouspharmacieSerializer,ConseilSerializer, RechercheSerializer
+from .serializers import ClientSerializer, ClientUpdateSerializer ,UserLoginSerializer,PharmacieRegistrationSerializer, PharmacieUpdateSerializer, UserSerializer,get_pharmacieSerializer,CommandetousclientSerializer,CommandetouspharmacieSerializer,ConseilSerializer, RechercheSerializer,  NotificationSerializer
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -20,13 +20,15 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+import requests
+# from .utils import pharmacies_within_radius
 import re
 
 
 
 # Importez le modèle Facture et le sérialiseur FactureSerializer
 
-from .models import Client,User,Pharmacie,Commande,Conseil, Recherche
+from .models import Client,User,Pharmacie,Commande,Conseil, Recherche, Notification
 
 import jwt
 
@@ -95,6 +97,48 @@ def generer_code(name, nombre, longueur=6):
     name = slugify(name)
     newCode = name.upper()+"-"+code
     return newCode
+
+def push_notification(token_phone, notification):
+    # FCM API Url
+    url = "https://fcm.googleapis.com/fcm/send"
+    token = token_phone
+    server_key = "AAAAV7gfwcQ:APA91bHQQkizuwwU969j7NMXlYjI6EPHFohIyEQC9fZ_FTGEeHgLyNYvIHsshdO-J75ppywW57VG0CRiIh4LUIlotlhEDW_XjeFf4xd0hyf44OzrVINS7xAN7mLjnsP1X8ibV1NAXE65"
+
+    title = notification.title
+    body = notification.message
+
+    notification_data = {'title': title, 'body': body, 'sound': 'default', 'badge': '1'}
+    data_to_send = {
+        'to': token,
+        'notification': notification_data,
+        'priority': 'high',
+        'data': {
+            'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+            'sound': 'default',
+            'status': 'done',
+            'screen': 'NotificationsScreen'
+        },
+        # Always include this part to play the custom sound
+        "android": {
+            "notification": {
+                "channel_id": 'channel_id'  # NOTIFICATION CHANNEL ID WITH CUSTOM SOUND REFERENCE HERE
+            }
+        }
+    }
+
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'key=' + server_key
+    }
+
+    try:
+        response = requests.post(url, data=json.dumps(data_to_send), headers=headers, timeout=1)
+        response.raise_for_status()
+       
+    except requests.exceptions.RequestException as e:
+        print('FCM Send Error:', e)
+
+
 class ClientRegistrationAPIView(APIView):
     serializer_class = ClientSerializer
     serializer_update = ClientUpdateSerializer
@@ -208,61 +252,45 @@ class ClientUpdateAPIView(APIView):
     serializer_update = ClientUpdateSerializer
     
     def put(self, request):
-        serializer = self.serializer_update(data=request.data)
-        if serializer.is_valid(raise_exception=False):
-            # Créez et enregistrez un nouvel utilisateur
-            numero=serializer.validated_data['num_pharmacie']
+        # Créez et enregistrez un nouvel utilisateur
+        numero=serializer.validated_data['num_pharmacie']
+        
+        if 'num_pharmacie'  in request.data and request.data['num_pharmacie']:
+            pharmacie=Pharmacie.objects.filter(num_pharmacie=request.data['num_pharmacie']).first()
+        
+            if  not pharmacie:
+                return Response({"detail": "Désolé le numero de la pharmacie est incorrecte."}, status=status.HTTP_400_BAD_REQUEST)
             
-            if numero:
-                pharmacie=Pharmacie.objects.filter(num_pharmacie=numero).first()
+        user = request.user
+        if not user:
+            return Response({'detail': "Désolé, vous n'êtes pas authentifié."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Modifier mot de passe User
+        if 'user' in request.data and 'password' in request.data['user']:
+            user.set_password(request.data['user']['password'])
+            user.save()
             
-                if  not pharmacie:
-                    return Response({"detail": "Désolé le numero de la pharmacie est incorrecte."}, status=status.HTTP_400_BAD_REQUEST)
-                
-            user = request.user
-            if not user:
-                return Response({'detail': "Désolé, vous n'êtes pas authentifié."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        client = request.user.client_user
+        
+        for key in request.data:
+            setattr(client, key, request.data[key])
             
-            # Modifier mot de passe User
-            if 'user' in request.data and 'password' in request.data['user']:
-                user.set_password(request.data['user']['password'])
-                user.save()
-                
+        client.save()
             
-            client = request.user.client_user
-           
-            client.prenom=serializer.validated_data['prenom']
-            client.adresse=serializer.validated_data['adresse']
-            client.ville=serializer.validated_data['ville']
-            client.phone=serializer.validated_data['phone']
-            client.image=serializer.validated_data['image']
-            client.n_cmu=serializer.validated_data['n_cmu']
-            client.n_assurance=serializer.validated_data['n_assurance']
-            client.sexe=serializer.validated_data['sexe']
-            client.maladie_chronique=serializer.validated_data['maladie_chronique']
-            client.poids=serializer.validated_data['poids']
-            client.taille=serializer.validated_data['taille']
-            client.num_pharmacie=serializer.validated_data['num_pharmacie']
-            client.save()
-                
 
-                # Utilisez les tokens pour générer les cookies
-            refresh = RefreshToken.for_user(user)
-            data = {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                    'detail': f"Client {new_client.prenom} modifié avec succès!",
-                    'user_data':ClientSerializer(client,many=False).data
-                }
-            return Response(data, status=status.HTTP_200_OK)
+        # Utilisez les tokens pour générer les cookies
+        refresh = RefreshToken.for_user(user)
+        data = {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'detail': f"Client {new_client.prenom} modifié avec succès!",
+                'user_data':ClientSerializer(client,many=False).data
+            }
+        return Response(data, status=status.HTTP_200_OK)
 
             
-        list_erreur=has_key_client(serializer.errors)
-        return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
- 
- 
- 
- 
+
  
 def has_key_pharmacie(errors):
     if isinstance(errors, dict):
@@ -482,8 +510,6 @@ class UserDetailView(RetrieveAPIView):
         return Response(serializer.data)
 
 
-
-
 class UserLoginAPIView(APIView):
     authentication_classes = []
     serializer_class = UserLoginSerializer
@@ -552,7 +578,23 @@ class UserLoginAPIView(APIView):
                 raise AuthenticationFailed('Le compte utilisateur n\'est pas actif.')
         else:
             raise AuthenticationFailed('Email ou mot de passe incorrect.')
-        
+
+class UserByTokenViewAPI(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+
+        if request.user.is_pharmacie == True:
+            user = PharmacieRegistrationSerializer(request.user.pharmacie_user,many=False).data
+        else:
+            user = ClientSerializer(request.user.client_user, many=False).data
+            
+        # Si le token n'est pas fourni, renvoie une réponse indiquant que l'utilisateur est déjà déconnecté
+        return Response({
+            "detail": "utilisateur recuperée avec succès",
+            'user_data': user
+        }, status=status.HTTP_200_OK)   
         
 class UserLogoutViewAPI(APIView):
     authentication_classes = (JWTAuthentication,)
@@ -610,8 +652,7 @@ class get_pharmacie(APIView):
         pharmacie=Pharmacie.objects.all()
         serializer=get_pharmacieSerializer(pharmacie,many=True)
         return Response(serializer.data)
-    
-      
+        
 class GetPharmacieGarde(APIView):
     def get(self, request):
         # Récupérer les pharmacies de garde
@@ -619,8 +660,7 @@ class GetPharmacieGarde(APIView):
             # Serializer les pharmacies de garde si elles existent
         serializer = get_pharmacieSerializer(pharmacies_de_garde, many=True)
         return Response(serializer.data)
-    
-    
+      
 class get_Conseil(APIView):
     def get(self,request):
         conseils = Conseil.objects.all()
@@ -689,9 +729,6 @@ class GestionCommandeDetailClient(APIView):
             return Response({"detail": "Commande supprimée avec succès"}, status=status.HTTP_200_OK)
         else:
             return Response({"detail": "La commande ne peut pas être supprimée car elle n'est plus en attente."}, status=status.HTTP_400_BAD_REQUEST)    
-        
-        
-        
 
 class CommandesPharmacietous(APIView):
     permission_classes = [IsPharmacieCanModifyCommande]
@@ -750,9 +787,6 @@ class PharmacieDetail(APIView):
         customer.delete()
         return Response({"detail": "Utilisateur supprimée avec succès"}, status=status.HTTP_200_OK)        
     
-    
-
-
 class ConseilDetail(APIView):
     permission_classes = [IsPharmacieCanModifyCommande]
     
@@ -795,7 +829,6 @@ class ConseilDetail(APIView):
         conseil.delete()
         return Response({"detail": "Conseil supprimé avec succès"}, status=status.HTTP_200_OK)    
     
-
 class RechercheList(APIView):
     permission_classes = [IsPharmacieOrClient]
     
@@ -875,3 +908,70 @@ class RechercheDetail(APIView):
                 return Response({"detail":"Désolé, vous ne pouvez effectuer à cette action"}, status=status.HTTP_403_FORBIDDEN)
         recherche.delete()
         return Response({"detail": "Recherche supprimée avec succès"},status=status.HTTP_200_OK)
+
+class NotificationList(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+    
+    def get(self, request):
+        if request.user:
+            if request.user.is_pharmacie != True:
+                notifications = Notification.objects.filter(user_type='client').filter(user_id=request.user.client_user.pk).order_by("-pk")
+            else:
+                notifications = Notification.objects.filter(user_type='pharmacie').filter(user_id=request.user.pharmacie_user.pk).order_by("-pk")
+            
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        data=request.data
+        if request.user.is_pharmacie != True:
+            data['user_type'] = 'client'
+            data['user_id'] = request.user.client_user.pk
+        else:
+            data['user_type'] = 'pharmacie'
+            data['user_id'] = request.user.pharmacie_user.pk
+            
+            
+        serializer = NotificationSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class NotificationDetail(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+    
+    def get_object(self, pk):
+        try:
+            return Notification.objects.get(pk=pk)
+        except Notification.DoesNotExist:
+            raise Http404
+        
+
+    def get(self, request, pk):
+        notification = self.get_object(pk)
+        serializer = NotificationSerializer(notification)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        data=request.data
+        
+        # notification = Notification.objects.get(pk=pk).update(**data)
+        notification = self.get_object(pk)
+        
+        # Mettre à jour les attributs de l'objet avec les valeurs fournies dans le dictionnaire
+        for key in request.data:
+            setattr(notification, key, request.data[key])
+            
+        # Enregistrer l'objet mis à jour dans la base de données
+        notification.save()
+
+        # notification.update(**data)
+        return Response(NotificationSerializer(notification,many=False).data)
+
+    def delete(self, request, pk):
+        notification = self.get_object(pk)
+        notification.delete()
+        return Response({'detail': "Notification supprimée"},status=status.HTTP_200_OK)

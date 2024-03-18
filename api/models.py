@@ -39,10 +39,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=True)
     date_joined = models.DateField(auto_now_add=True)
+    date_update =  models.DateTimeField(auto_now=True)
     is_pharmacie = models.BooleanField(default=False)  # Nouveau champ
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
     
+
     objects = UserManager()
 
 
@@ -69,6 +71,11 @@ class Client(models.Model):
     poids = models.DecimalField(max_digits=5, decimal_places=2,null=True, blank=True)
     taille = models.DecimalField(max_digits=5, decimal_places=2,null=True, blank=True)
     num_pharmacie=models.CharField(max_length=255, blank=True, null=True)
+    firebase_token=models.CharField(max_length=255, blank=True, null=True)
+    
+    est_actif = models.BooleanField(default=True)
+    date_creation =  models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    date_modification =  models.DateTimeField(auto_now=True, blank=True, null=True)
     
     
 class Pharmacie(models.Model):
@@ -81,6 +88,14 @@ class Pharmacie(models.Model):
     numero_contact_pharmacie = models.CharField(max_length=20, blank=True, null=True)
     horaire_ouverture_pharmacie = models.CharField(max_length=255, blank=True, null=True)
     degarde=models.BooleanField(default=False)
+    latitude=models.CharField(max_length=100, blank=True, null=True)
+    longitude=models.CharField(max_length=100, blank=True, null=True)
+    logo_url=models.CharField(max_length=100, blank=True, null=True)
+    firebase_token=models.CharField(max_length=255, blank=True, null=True)
+    
+    est_actif = models.BooleanField(default=True)
+    date_creation =  models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    date_modification =  models.DateTimeField(auto_now=True, blank=True, null=True)
     
     def __str__(self):
         return f"{self.nom_pharmacie}"
@@ -108,6 +123,9 @@ class Commande(models.Model):
     date_creation = models.DateTimeField(auto_now_add=True)
     date_livraison = models.DateTimeField(null=True, blank=True)
     Facture=models.CharField(max_length=255, blank=True, null=True)
+    
+    est_actif = models.BooleanField(default=True)
+    date_modification =  models.DateTimeField(auto_now=True, blank=True, null=True)
 
     def __str__(self):
         return f"Commande {self.id} - {self.client.prenom}"    
@@ -118,6 +136,8 @@ class Conseil(models.Model):
     message = models.TextField()
     pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE)
     date_creation = models.DateTimeField(auto_now_add=True)
+    est_actif = models.BooleanField(default=True)
+    date_modification =  models.DateTimeField(auto_now=True, blank=True, null=True)
 
     def __str__(self):
         return self.titre
@@ -140,8 +160,31 @@ class Recherche(models.Model):
     terminer = models.BooleanField(default=False)
     pharmacie_id = models.ForeignKey(Pharmacie, on_delete=models.SET_NULL, blank=True, null=True)
     facture =  models.TextField(blank=True, null=True)
-    date_creation = models.DateTimeField(auto_now_add=True)
-    date_modification = models.DateTimeField(auto_now=True)
-
+    date_creation = models.DateTimeField(auto_now_add=True, blank=True, null=True )
+    date_modification = models.DateTimeField(auto_now=True, blank=True, null=True)
+    est_actif = models.BooleanField(default=True)
+   
     def __str__(self):
         return "Recherche #"+str(self.pk)
+    
+    
+class Notification(models.Model):
+    STATUT_CHOICES = [
+        ('client', 'Client'),
+        ('pharmacie', 'Pharmacie')
+    ]
+    title = models.CharField(max_length=255)
+    message = models.CharField(max_length=255)
+    type = models.CharField(max_length=255)
+    data_id = models.CharField(max_length=255, blank=True, null=True)
+    metadata = models.CharField(max_length=255, blank=True, null=True)
+    is_read = models.BooleanField(default=False)
+    user_type = models.CharField(max_length=255, choices=STATUT_CHOICES)
+    user_id = models.PositiveIntegerField()
+
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    est_actif = models.BooleanField(default=True)
+   
+    def __str__(self):
+        return str(self.title)

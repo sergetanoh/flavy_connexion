@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import Client,Pharmacie
-from .models import Commande,Commande,Conseil, Recherche
+from .models import Commande,Commande,Conseil, Recherche, Notification
 import pdb
 
 class UserSerializer(serializers.ModelSerializer):
@@ -29,7 +29,7 @@ class ClientSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Client
-        fields = ['user', 'prenom', 'adresse', 'ville', 'phone', 'image', 'n_cmu', 'n_assurance', 'sexe', 'maladie_chronique', 'poids', 'taille','num_pharmacie']
+        fields = ['user', 'prenom', 'adresse', 'ville', 'phone', 'image', 'n_cmu', 'n_assurance', 'sexe', 'maladie_chronique', 'poids', 'taille','num_pharmacie', 'est_actif', 'date_creation', 'date_modification']
         extra_kwargs = {'date_inscription': {'read_only': True}}  # Empêche la modification de la date_inscription
 
     # On override la méthode create pour créer d'abord l'utilisateur puis le client
@@ -54,7 +54,7 @@ class ClientUpdateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Client
-        fields = ['prenom', 'adresse', 'ville', 'phone', 'image', 'n_cmu', 'n_assurance', 'sexe', 'maladie_chronique', 'poids', 'taille','num_pharmacie']
+        fields = ['prenom', 'adresse', 'ville', 'phone', 'image', 'n_cmu', 'n_assurance', 'sexe', 'maladie_chronique', 'poids', 'taille','num_pharmacie', 'est_actif', 'date_creation', 'date_modification']
         extra_kwargs = {'date_inscription': {'read_only': True}}  # Empêche la modification de la date_inscription
 
 
@@ -65,7 +65,7 @@ class PharmacieRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pharmacie
-        fields = ['user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie','num_pharmacie', 'degarde']
+        fields = ['user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie','num_pharmacie', 'degarde','latitude','longitude','logo_url','est_actif', 'date_modification']
 
     def create(self, validated_data):
         # Extraire les données utilisateur du sérialiseur PharmacieSerializer
@@ -133,4 +133,10 @@ class ConseilSerializer(serializers.ModelSerializer):
 class RechercheSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recherche
+        fields = '__all__'
+        
+        
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
         fields = '__all__'

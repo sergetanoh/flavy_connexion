@@ -19,7 +19,11 @@ from .views import (
     get_Conseil,
     
     RechercheList,
-    RechercheDetail
+    RechercheDetail,
+    UserByTokenViewAPI,
+    
+    NotificationList, 
+    NotificationDetail
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -32,11 +36,11 @@ urlpatterns = [
 	path('client/register/', ClientRegistrationAPIView.as_view()),
 	path('client/login/', UserLoginAPIView.as_view()),
 	path('client/logout/', UserLogoutViewAPI.as_view()),
-	path('client/update/', ClientUpdateAPIView.as_view()),
- 
-	# path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    # path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    # path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+	path('client/update/', UserLogoutViewAPI.as_view()),
+	 
+	path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
  
  
     path('pharmacie/register/', PharmacieRegistrationAPIView.as_view()),
@@ -45,6 +49,8 @@ urlpatterns = [
 	path('pharmacie/update/', PharmacieUpdateAPIView.as_view()),
  
  
+    path('get-user/by-token/', UserByTokenViewAPI.as_view()),
+
  
     #################   COMMANDES #################
     # URL pour gérer une commande spécifique pour le client
@@ -68,5 +74,8 @@ urlpatterns = [
 
     path('recherches/', RechercheList.as_view(), name='recherche-list'),
     path('recherches/<int:pk>/', RechercheDetail.as_view(), name='recherche-detail'),
+    
+    path('notifications/', NotificationList.as_view(), name='notification-list'),
+    path('notifications/<int:pk>/', NotificationDetail.as_view(), name='Notification-detail'),
 ]
  
