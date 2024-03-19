@@ -284,7 +284,7 @@ class ClientUpdateAPIView(APIView):
         data = {
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
-                'detail': f"Client {new_client.prenom} modifié avec succès!",
+                'detail': f"Client {client.prenom} modifié avec succès!",
                 'user_data':ClientSerializer(client,many=False).data
             }
         return Response(data, status=status.HTTP_200_OK)
