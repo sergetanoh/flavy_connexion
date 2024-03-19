@@ -756,7 +756,7 @@ class PharmacieDetail(APIView):
 
     def put(self, request, pk):
         commande = self.get_object(pk)
-        request.data['pharmacie_id'] =  commande.pharmacie_id.pk
+        request.data['pharmacie_id'] =  commande.pharmacie_id
         request.data['client'] =  commande.client
         
         serializer = CommandetouspharmacieSerializer(commande, data=request.data)
