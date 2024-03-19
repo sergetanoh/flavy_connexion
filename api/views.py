@@ -20,7 +20,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
-import requests
+# import requests
 # from .utils import pharmacies_within_radius
 import re
 
