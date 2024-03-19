@@ -135,6 +135,7 @@ MIDDLEWARE = [
 
 # CORS_ALLOWED_ORIGINS = [
 #     'http://localhost:3000/',
+#     'http://192.168.50.119:3000/'
 # ]
 
 ROOT_URLCONF = 'api_flav.urls'

@@ -756,31 +756,28 @@ class PharmacieDetail(APIView):
 
     def put(self, request, pk):
         commande = self.get_object(pk)
-        request.data['pharmacie_id'] =  commande.pharmacie_id
-        request.data['client'] =  commande.client
+        request.data['pharmacie_id'] =  commande.pharmacie_id.pk
+        request.data['client'] =  commande.client.pk
         
-        serializer = CommandetouspharmacieSerializer(commande, data=request.data)
-        if serializer.is_valid():
-            if request.data.get('statut')=='livree' and not commande.en_attente:
-                return Response({"detail": "La commande a déjà été validée."}, status=status.HTTP_400_BAD_REQUEST)
+        # serializer = CommandetouspharmacieSerializer(commande, data=request.data)
+        # if serializer.is_valid():
+        if request.data.get('statut')=='livree' and not commande.en_attente:
+            return Response({"detail": "La commande a déjà été validée."}, status=status.HTTP_400_BAD_REQUEST)
             
-            if request.data.get('facture'):
-                # Valider la commande
-                commande.en_attente = False
-                commande.statut = 'traite'
-                commande.Facture = request.data.get('facture')
-                commande.save()
-                return Response(serializer.data)
+        if request.data.get('facture'):
+            # Valider la commande
+            commande.en_attente = False
+            commande.statut = 'traite'
+            commande.Facture = request.data.get('facture')
+            commande.save()
             
-            if request.data.get('statut'):
-                commande.statut = request.data.get('statut')
-                if request.data.get('statut') == "termine":
-                    commande.termine = True
-                commande.save()
+        if request.data.get('statut'):
+            commande.statut = request.data.get('statut')
+            if request.data.get('statut') == "termine":
+                commande.termine = True
+            commande.save()
                 
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(CommandetouspharmacieSerializer(commande, many=False).data)
 
     def delete(self, request, pk):
         customer = self.get_object(pk)
