@@ -757,8 +757,8 @@ class PharmacieDetail(APIView):
     def put(self, request, pk):
         commande = self.get_object(pk)
         request.data['pharmacie_id'] =  commande.pharmacie_id.pk
-        request.data['client'] =  commande.client.pk
-        print(request.data)
+        request.data['client'] =  commande.client
+        
         serializer = CommandetouspharmacieSerializer(commande, data=request.data)
         if serializer.is_valid():
             if request.data.get('statut')=='livree' and not commande.en_attente:
