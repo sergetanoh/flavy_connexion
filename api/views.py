@@ -253,7 +253,7 @@ class ClientUpdateAPIView(APIView):
     
     def put(self, request):
         # Créez et enregistrez un nouvel utilisateur
-        numero=serializer.validated_data['num_pharmacie']
+        # numero= request.data['num_pharmacie']
         
         if 'num_pharmacie'  in request.data and request.data['num_pharmacie']:
             pharmacie=Pharmacie.objects.filter(num_pharmacie=request.data['num_pharmacie']).first()
