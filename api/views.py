@@ -277,7 +277,7 @@ class ClientUpdateAPIView(APIView):
         
         for key in formData:
             setattr(client, key, formData[key])
-            
+                
         client.save()
             
 
@@ -414,7 +414,6 @@ class PharmacieRegistrationAPIView(APIView):
             
             # Enregistrer code pharmacie
             code = generer_code(new_pharmacie.nom_pharmacie, new_pharmacie.pk, longueur=6)
-            print(code)
             new_pharmacie.num_pharmacie = code
             new_pharmacie.save()
             

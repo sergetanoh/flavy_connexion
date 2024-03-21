@@ -90,7 +90,7 @@ class Pharmacie(models.Model):
     degarde=models.BooleanField(default=False)
     latitude=models.CharField(max_length=100, blank=True, null=True)
     longitude=models.CharField(max_length=100, blank=True, null=True)
-    logo_url=models.CharField(max_length=100, blank=True, null=True)
+    logo_url=models.CharField(max_length=100, default="https://media.istockphoto.com/id/1275720974/vector/blue-and-green-medical-cross-health.jpg?s=612x612&w=0&k=20&c=j322qhLcySdh7qhtlTnUf_EUzlQG2i9bnoJ3vHdJ81I=")
     firebase_token=models.CharField(max_length=255, blank=True, null=True)
     
     est_actif = models.BooleanField(default=True)

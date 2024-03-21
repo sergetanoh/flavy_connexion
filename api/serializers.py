@@ -65,7 +65,7 @@ class PharmacieRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pharmacie
-        fields = ['user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie','num_pharmacie', 'degarde','latitude','longitude','logo_url','est_actif', 'date_modification']
+        fields = ['user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie','num_pharmacie', 'degarde','latitude','longitude','logo_url','est_actif','date_creation' 'date_modification']
 
     def create(self, validated_data):
         # Extraire les données utilisateur du sérialiseur PharmacieSerializer
@@ -83,16 +83,16 @@ class PharmacieRegistrationSerializer(serializers.ModelSerializer):
         return pharmacie
     
 class PharmacieUpdateSerializer(serializers.ModelSerializer):
-    # user = UserSerializer()
+    user = UserSerializer()
 
     class Meta:
         model = Pharmacie
-        fields = ['num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie']
-
+        fields = ['user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie','num_pharmacie', 'degarde','latitude','longitude','logo_url','est_actif','date_creation' 'date_modification']
 
 
 
 class get_pharmacieSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
     class Meta:
         model = Pharmacie
         fields = ['id', 'user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie', 'degarde']
