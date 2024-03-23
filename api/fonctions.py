@@ -1,5 +1,7 @@
 import re
+import json
 import requests
+from django.core import serializers
 
 def has_key_client(errors):
     if isinstance(errors, dict):
@@ -47,6 +49,53 @@ def has_key_client(errors):
         if "poids" in errors:
             return  {'detail':"poids: "+  errors["poids"][0] }
 
+def has_key_pharmacie(errors):
+    if isinstance(errors, dict):
+        if "user" in errors:
+            if "email" in errors["user"]:
+               return  {'detail': "email: "+ errors["user"]["email"][0] }
+           
+            if "username" in errors["user"]:
+               return  {'detail': "username: "+ errors["user"]["username"][0] }
+           
+            if "password" in errors["user"]:
+               return  {'detail': "password: "+ errors["user"]["password"][0] }
+           
+            if "is_pharmacy" in errors["user"]:
+               return  {'detail': "is_pharmacy: "+ errors["user"]["is_pharmacy"][0] }
+           
+        if "num_pharmacie" in errors:
+            return  {'detail': "num_pharmacie: "+ errors["num_pharmacie"][0] }
+        
+        if "nom_pharmacie" in errors:
+            return  {'detail':"nom_pharmacie: "+  errors["nom_pharmacie"][0] }
+        
+        if "adresse_pharmacie" in errors:
+            return  {'detail':"adresse_pharmacie: "+  errors["adresse_pharmacie"][0] }
+        
+        if "commune_pharmacie" in errors:
+            return  {'detail':"commune_pharmacie: "+  errors["commune_pharmacie"][0] }
+        
+        
+        if "image" in errors:
+            return  {'detail': "image: "+ errors["image"][0] }
+        
+        if "n_cmu" in errors:
+            return  {'detail':"n_cmu: "+  errors["n_cmu"][0] }
+        
+        if "n_assurance" in errors:
+            return  {'detail': "n_assurance: "+ errors["n_assurance"][0] }
+        
+        if "ville_pharmacie" in errors:
+            return  {'detail': "ville_pharmacie: "+ errors["ville_pharmacie"][0] }
+        
+        if "numero_contact_pharmacie" in errors:
+            return  {'detail':  "numero_contact_pharmacie: "+ errors["numero_contact_pharmacie"][0] }
+        
+        if "horaire_ouverture_pharmacie" in errors:
+            return  {'detail':"horaire_ouverture_pharmacie: "+  errors["horaire_ouverture_pharmacie"][0] }
+ 
+
 def slugify(chaine):
     # Convertir en minuscules
     chaine = chaine.lower()
@@ -64,11 +113,11 @@ def generer_code(name, nombre, longueur=6):
     newCode = name.upper()+"-"+code
     return newCode
 
-def push_notification(token_phone, notification):
-    # FCM API Url
+def send_notification(notification, token_phone):
+    
     url = "https://fcm.googleapis.com/fcm/send"
     token = token_phone
-    server_key = "AAAAV7gfwcQ:APA91bHQQkizuwwU969j7NMXlYjI6EPHFohIyEQC9fZ_FTGEeHgLyNYvIHsshdO-J75ppywW57VG0CRiIh4LUIlotlhEDW_XjeFf4xd0hyf44OzrVINS7xAN7mLjnsP1X8ibV1NAXE65"
+    server_key = "AAAATipVc90:APA91bEYeNeVqZTimh-EgSc16QsqwjiQ3c4rXXSqeeq8hCrwK9V2vCnNIYMB9zrUpQC1YUmO1R0kvNURgTPyXnDILHUkjS11g4gW3PJuSYKEdRvKb1yKVdWtXyNMnBhemYBQk0flGeiq"
 
     title = notification.title
     body = notification.message
@@ -82,12 +131,18 @@ def push_notification(token_phone, notification):
             'click_action': 'FLUTTER_NOTIFICATION_CLICK',
             'sound': 'default',
             'status': 'done',
-            'screen': 'NotificationsScreen'
+            'screen': 'NotificationsScreen',
+            'notification_type' : notification.type,
+            'notification_id' : notification.id,
+            'meta_data_id' : notification.data_id,
+            'notification' : serializers.serialize("json", notification),
+            "title" : title,
+            "body" : body,
+
         },
-        # Always include this part to play the custom sound
         "android": {
             "notification": {
-                "channel_id": 'channel_id'  # NOTIFICATION CHANNEL ID WITH CUSTOM SOUND REFERENCE HERE
+                "channel_id": 'channel_id'  
             }
         }
     }
@@ -103,3 +158,5 @@ def push_notification(token_phone, notification):
        
     except requests.exceptions.RequestException as e:
         print('FCM Send Error:', e)
+
+

@@ -38,19 +38,15 @@ urlpatterns = [
 	path('client/logout/', UserLogoutViewAPI.as_view()),
 	path('client/update/', ClientUpdateAPIView.as_view()),
 	 
-	path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
- 
+	path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    path('auth/get-user/by-token/', UserByTokenViewAPI.as_view()),
  
     path('pharmacie/register/', PharmacieRegistrationAPIView.as_view()),
 	path('pharmacie/login/', UserLoginAPIView.as_view()),
 	path('pharmacie/logout/', UserLogoutViewAPI.as_view()),
 	path('pharmacie/update/', PharmacieUpdateAPIView.as_view()),
- 
- 
-    path('get-user/by-token/', UserByTokenViewAPI.as_view()),
-
  
     #################   COMMANDES #################
     # URL pour gérer une commande spécifique pour le client
@@ -61,8 +57,6 @@ urlpatterns = [
     path('pharmacies/commandes/<int:pk>/', PharmacieDetail.as_view(), name='pharmacie_detail'),
     path('pharmacies/commandes/', CommandesPharmacietous.as_view(), name='commandes_pharmacie_tous'),
     
-
-    
     path('user/profile',UserDetailView.as_view(), name='user_profile'),
     path("get-pharmacie/", get_pharmacie.as_view(), name="get_pharmacie"),
     path("get-pharmacie-garde/", GetPharmacieGarde.as_view(), name="get_pharmaciegarde"),
@@ -70,7 +64,6 @@ urlpatterns = [
     path('conseils/', ConseilDetail.as_view(), name='conseil_create'),
     path('conseils/all', get_Conseil.as_view(), name='conseil_get_all'),
     path('conseils/<int:pk>/', ConseilDetail.as_view(), name='conseil_detail'),
-    
 
     path('recherches/', RechercheList.as_view(), name='recherche-list'),
     path('recherches/<int:pk>/', RechercheDetail.as_view(), name='recherche-detail'),

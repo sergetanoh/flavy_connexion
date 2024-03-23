@@ -1,4 +1,4 @@
-
+from .models import Client,User,Pharmacie,Commande,Conseil, Recherche, Notification
 from .serializers import ClientSerializer, UserLoginSerializer,PharmacieSerializer, UserSerializer, CommandeSerializer,ConseilSerializer, RechercheSerializer,  NotificationSerializer
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView
@@ -8,7 +8,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed
-import datetime
+from .permissions import IsPharmacieOrReadOnly,IsSuperUserOrReadOnly,IsClientOrReadOnly,IsPharmacieCanModifyCommande, IsPharmacieOrClient
+from .backends import EmailBackend
+from .fonctions import has_key_client,has_key_pharmacie, generer_code, send_notification 
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.http import Http404
@@ -20,21 +22,13 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from django.core.serializers import serialize
+import jwt
+import re
+import datetime
+
 
 # from .utils import pharmacies_within_radius
-import re
-
-
-
-# Importez le modèle Facture et le sérialiseur FactureSerializer
-
-from .models import Client,User,Pharmacie,Commande,Conseil, Recherche, Notification
-
-import jwt
-
-from .permissions import IsPharmacieOrReadOnly,IsSuperUserOrReadOnly,IsClientOrReadOnly,IsPharmacieCanModifyCommande, IsPharmacieOrClient
-from .backends import EmailBackend
-
 
 
 class ClientRegistrationAPIView(APIView):
@@ -102,7 +96,7 @@ class ClientRegistrationAPIView(APIView):
             new_user = User.objects.create_user(
                     email=serializer.validated_data['user']['email'],
                     username=serializer.validated_data['user']['username'],
-                    password=serializer.validated_data['user']['password'],
+                    password=request.data['user']['password'],
                     is_pharmacie=False
                 )
 
@@ -181,56 +175,6 @@ class ClientUpdateAPIView(APIView):
             }
         return Response(data, status=status.HTTP_200_OK)
 
-            
-
- 
-def has_key_pharmacie(errors):
-    if isinstance(errors, dict):
-        if "user" in errors:
-            if "email" in errors["user"]:
-               return  {'detail': "email: "+ errors["user"]["email"][0] }
-           
-            if "username" in errors["user"]:
-               return  {'detail': "username: "+ errors["user"]["username"][0] }
-           
-            if "password" in errors["user"]:
-               return  {'detail': "password: "+ errors["user"]["password"][0] }
-           
-            if "is_pharmacy" in errors["user"]:
-               return  {'detail': "is_pharmacy: "+ errors["user"]["is_pharmacy"][0] }
-           
-        if "num_pharmacie" in errors:
-            return  {'detail': "num_pharmacie: "+ errors["num_pharmacie"][0] }
-        
-        if "nom_pharmacie" in errors:
-            return  {'detail':"nom_pharmacie: "+  errors["nom_pharmacie"][0] }
-        
-        if "adresse_pharmacie" in errors:
-            return  {'detail':"adresse_pharmacie: "+  errors["adresse_pharmacie"][0] }
-        
-        if "commune_pharmacie" in errors:
-            return  {'detail':"commune_pharmacie: "+  errors["commune_pharmacie"][0] }
-        
-        
-        if "image" in errors:
-            return  {'detail': "image: "+ errors["image"][0] }
-        
-        if "n_cmu" in errors:
-            return  {'detail':"n_cmu: "+  errors["n_cmu"][0] }
-        
-        if "n_assurance" in errors:
-            return  {'detail': "n_assurance: "+ errors["n_assurance"][0] }
-        
-        if "ville_pharmacie" in errors:
-            return  {'detail': "ville_pharmacie: "+ errors["ville_pharmacie"][0] }
-        
-        if "numero_contact_pharmacie" in errors:
-            return  {'detail':  "numero_contact_pharmacie: "+ errors["numero_contact_pharmacie"][0] }
-        
-        if "horaire_ouverture_pharmacie" in errors:
-            return  {'detail':"horaire_ouverture_pharmacie: "+  errors["horaire_ouverture_pharmacie"][0] }
- 
-
 class PharmacieRegistrationAPIView(APIView):
     serializer_class = PharmacieSerializer
 
@@ -285,7 +229,7 @@ class PharmacieRegistrationAPIView(APIView):
             new_user = User.objects.create_user(
                 email=serializer.validated_data['user']['email'],
                 username=serializer.validated_data['user']['username'],
-                password=serializer.validated_data['user']['password'],
+                password=request.data['user']['password'],
                 is_pharmacie=True
             )
 
@@ -562,23 +506,36 @@ class get_Conseil(APIView):
 class PasserCommandeClient(APIView):
     permission_classes = [IsClientOrReadOnly]
     def post(self, request):
+        request_data = request.data
         clt=Client.objects.get(user=request.user.pk)
-        request.data['client'] = clt.pk
+        request_data['client'] = clt
         
         if clt.num_pharmacie:
             pharmacie = Pharmacie.objects.filter(num_pharmacie= clt.num_pharmacie).first()
             if pharmacie is None:
                 return Response({"detail": "Désolé, votre pharmacie est introuvable."}, status=status.HTTP_400_BAD_REQUEST)
-            request.data['pharmacie_id'] = pharmacie.pk
+            request_data['pharmacie_id'] = pharmacie
         else:
             return Response({"detail": "Désolé, veuillez d'abord renseigner le code de votre pharmacie."}, status=status.HTTP_400_BAD_REQUEST)
             
-
-        serializer =CommandeSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        commande = Commande.objects.create(**request_data)
+        serializer =CommandeSerializer(commande, many=False)
+        
+        notification = Notification.objects.create(
+            title = "Nouvelle commande",
+            message = "Vous avez reçu une nouvelle commande.",
+            type = "commande",
+            data_id = commande.pk,
+            metadata = CommandeSerializer(commande, many=False).data,
+            is_read = False,
+            user_type = 'pharmacie',
+            user_id = pharmacie.pk
+        )
+        
+        if pharmacie.firebase_token:
+            send_notification(notification, pharmacie.firebase_token)
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     def get(self, request):
         
@@ -660,6 +617,22 @@ class PharmacieDetail(APIView):
             commande.statut = 'traite'
             commande.Facture = request.data.get('facture')
             commande.save()
+            
+            client = commande.client
+            
+            notification = Notification.objects.create(
+                title = "Nouvelle réponse pharmacie",
+                message = "Vous avez reçu une réponse à votre commande #"+ str(commande.pk),
+                type = "commande",
+                data_id = commande.pk,
+                metadata = CommandeSerializer(commande, many=False).data,
+                is_read = False,
+                user_type = 'client',
+                user_id = client.pk
+            )
+                        
+            if client.firebase_token:
+                send_notification(notification, client.firebase_token)
             
         if request.data.get('statut'):
             commande.statut = request.data.get('statut')
@@ -774,6 +747,23 @@ class RechercheDetail(APIView):
             request.data['statut'] = "traite"
             request.data['en_attente'] = False
             request.data['pharmacie_id'] = request.user.pharmacie_user.pk
+            
+            # Start Notification
+            notification = Notification.objects.create(
+                title = "Vous avez reçu une reponse à votre récherche",
+                message = "Une pharmacie à repondu à votre recherche de médicament numéro #"+ str(recherche.pk),
+                type = "recherche",
+                data_id = recherche.pk,
+                metadata = RechercheSerializer(recherche, many=False).data,
+                is_read = False,
+                user_type = 'client',
+                user_id = recherche.client.pk
+            )
+            
+            if recherche.client.firebase_token:
+                send_notification(notification, recherche.client.firebase_token)
+        
+            # End Notification
             
         if request.user.is_pharmacie != True :
             if recherche.client.pk != request.user.client_user.pk:

@@ -112,7 +112,7 @@ class Commande(models.Model):
     ]
 
     pharmacie_id = models.ForeignKey(Pharmacie, on_delete=models.CASCADE)
-    client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="commande_client")
     ordornance=models.CharField(max_length=255, blank=True, null=True)
     nom_medicament=models.CharField(max_length=255, blank=True, null=True)
     description=models.TextField(blank=True, null=True)
@@ -134,7 +134,7 @@ class Commande(models.Model):
 class Conseil(models.Model):
     titre = models.CharField(max_length=100)
     message = models.TextField()
-    pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE)
+    pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE, related_name="pharmacie_user")
     date_creation = models.DateTimeField(auto_now_add=True)
     est_actif = models.BooleanField(default=True)
     date_modification =  models.DateTimeField(auto_now=True, blank=True, null=True)

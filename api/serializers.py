@@ -77,7 +77,6 @@ class UserLoginSerializer(serializers.Serializer):
     token = serializers.CharField(max_length=255, read_only=True)
 
 
-
 class CommandeSerializer(serializers.ModelSerializer):
     client = ClientSerializer()
     class Meta:
