@@ -606,7 +606,8 @@ class PharmacieDetail(APIView):
         commande = self.get_object(pk)
         request.data['pharmacie_id'] =  commande.pharmacie_id.pk
         request.data['client'] =  commande.client.pk
-        
+    
+        client = commande.client
         
         if request.data.get('statut')=='livree' and not commande.en_attente:
             return Response({"detail": "La commande a déjà été validée."}, status=status.HTTP_400_BAD_REQUEST)
@@ -617,8 +618,6 @@ class PharmacieDetail(APIView):
             commande.statut = 'traite'
             commande.Facture = request.data.get('facture')
             commande.save()
-            
-            client = commande.client
             
             notification = Notification.objects.create(
                 title = "Nouvelle réponse pharmacie",
@@ -638,6 +637,26 @@ class PharmacieDetail(APIView):
             commande.statut = request.data.get('statut')
             if request.data.get('statut') == "termine":
                 commande.termine = True
+                
+            if request.data.get('statut') == "annulee":
+                commande.en_attente = False
+                commande.termine = True
+                
+                notification = Notification.objects.create(
+                    title = "Commande rejetée",
+                    message = "Nous sommes dans le regret de vous annoncer que nous ne sommes pas à mesure de repondre favorablement à votre commande numero #"+str(commande.pk),
+                    type = "commande",
+                    data_id = commande.pk,
+                    metadata = CommandeSerializer(commande, many=False).data,
+                    is_read = False,
+                    user_type = 'client',
+                    user_id = client.pk
+                )
+                            
+                if client.firebase_token:
+                    send_notification(notification, client.firebase_token)
+            
+                
             commande.save()
                 
         return Response(CommandeSerializer(commande, many=False).data)
