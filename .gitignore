@@ -1,4 +1,4 @@
-db.sqlite
+db.sqlite3
 /api_flav/settings.py
 /api/__pycache__
 /api/migrations/__pycache__
