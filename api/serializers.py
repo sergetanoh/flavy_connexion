@@ -5,10 +5,11 @@ from .models import Commande,Commande,Conseil, Recherche, Notification
 import pdb
 
 class UserSerializer(serializers.ModelSerializer):
-	password = serializers.CharField(max_length=100, min_length=8, style={'input_type': 'password'})
+	# password = serializers.CharField(max_length=100, min_length=8, style={'input_type': 'password'})
 	class Meta:
 		model = get_user_model()
-		fields = ['email', 'username', 'password']
+		fields = ['email', 'username']
+		# fields = ['email', 'username', 'password']
 
 	def create(self, validated_data):
 		user_password = validated_data.get('password', None)
@@ -29,7 +30,8 @@ class ClientSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Client
-        fields = ['user', 'prenom', 'adresse', 'ville', 'phone', 'image', 'n_cmu', 'n_assurance', 'sexe', 'maladie_chronique', 'poids', 'taille','num_pharmacie', 'est_actif', 'date_creation', 'date_modification']
+        fields = "__all__"
+        # fields = ['user', 'prenom', 'adresse', 'ville', 'phone', 'image', 'n_cmu', 'n_assurance', 'sexe', 'maladie_chronique', 'poids', 'taille','num_pharmacie', 'est_actif', 'date_creation', 'date_modification']
         extra_kwargs = {'date_inscription': {'read_only': True}}  # Empêche la modification de la date_inscription
 
     # On override la méthode create pour créer d'abord l'utilisateur puis le client
@@ -44,28 +46,14 @@ class ClientSerializer(serializers.ModelSerializer):
         client = Client.objects.create(user=user, **validated_data)
 
         return client
-    
 
-class ClientUpdateSerializer(serializers.ModelSerializer):
-    SEXE_CHOICES = [
-        ('Homme', 'Homme'),
-        ('Femme', 'Femme'),
-    ]
-    
-    class Meta:
-        model = Client
-        fields = ['prenom', 'adresse', 'ville', 'phone', 'image', 'n_cmu', 'n_assurance', 'sexe', 'maladie_chronique', 'poids', 'taille','num_pharmacie', 'est_actif', 'date_creation', 'date_modification']
-        extra_kwargs = {'date_inscription': {'read_only': True}}  # Empêche la modification de la date_inscription
-
-
-
-
-class PharmacieRegistrationSerializer(serializers.ModelSerializer):
+class PharmacieSerializer(serializers.ModelSerializer):
     user = UserSerializer()
 
     class Meta:
         model = Pharmacie
-        fields = ['user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie','num_pharmacie', 'degarde','latitude','longitude','logo_url','est_actif','date_creation' 'date_modification']
+        fields='__all__'
+        # fields = ['user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie','num_pharmacie', 'degarde','latitude','longitude','logo_url','est_actif','date_creation' 'date_modification']
 
     def create(self, validated_data):
         # Extraire les données utilisateur du sérialiseur PharmacieSerializer
@@ -82,25 +70,6 @@ class PharmacieRegistrationSerializer(serializers.ModelSerializer):
         
         return pharmacie
     
-class PharmacieUpdateSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
-
-    class Meta:
-        model = Pharmacie
-        fields = ['user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie','num_pharmacie', 'degarde','latitude','longitude','logo_url','est_actif','date_creation' 'date_modification']
-
-
-
-class get_pharmacieSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
-    class Meta:
-        model = Pharmacie
-        fields = ['id', 'user', 'num_pharmacie', 'nom_pharmacie', 'adresse_pharmacie', 'commune_pharmacie', 'ville_pharmacie', 'numero_contact_pharmacie', 'horaire_ouverture_pharmacie', 'degarde']
-       
-  
-  
-  
-  
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.CharField(max_length=100)
     username = serializers.CharField(max_length=100, read_only=True)
@@ -109,20 +78,12 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 
-
-
-class CommandetousclientSerializer(serializers.ModelSerializer):
-    class Meta:
-        model=Commande
-        fields='__all__'
-    
-class CommandetouspharmacieSerializer(serializers.ModelSerializer):
+class CommandeSerializer(serializers.ModelSerializer):
     client = ClientSerializer()
     class Meta:
         model=Commande
         fields='__all__'
-              
-        
+      
         
 class ConseilSerializer(serializers.ModelSerializer):
     class Meta:
