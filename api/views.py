@@ -175,6 +175,18 @@ class ClientUpdateAPIView(APIView):
             }
         return Response(data, status=status.HTTP_200_OK)
 
+
+class ClientDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self,request, pk):
+        try:
+            client = Client.objects.get(pk=pk)
+        except Client.DoesNotExist:
+            raise Http404
+        
+        return Response(ClientSerializer(client,many=False).data, status=status.HTTP_200_OK)
+
 class PharmacieRegistrationAPIView(APIView):
     serializer_class = PharmacieSerializer
 
@@ -281,51 +293,58 @@ class PharmacieUpdateAPIView(APIView):
         if request.user.is_pharmacie != True:
             return Response({ 'detail': "Vous ne pouvez pas effectuer cette action"}, status=status.HTTP_400_BAD_REQUEST)
         
-        if serializer.is_valid(raise_exception=False):
-            #   Modifier et enregistrez un nouvel utilisateur
-            user = request.user
-            if 'user' in request.data and 'password' in request.data['user']:
-                user.set_password(request.data['user']['password'])
-                user.save()
-            
-            # validateData = serializer.validated_data
-            # Modifier les information du modèle Pharmacie
-            # if 'user' in validateData:
-            #      user_data = validateData.pop('user')
-                
-            pharmacie = request.user.pharmacie_user
-            # print(pharmacie)
-            # pharmacie.update(**validateData)
-           
-            pharmacie.nom_pharmacie=request.data['nom_pharmacie']
-            pharmacie.adresse_pharmacie=request.data['adresse_pharmacie']
-            pharmacie.commune_pharmacie=request.data['commune_pharmacie']
-            pharmacie.ville_pharmacie=request.data['ville_pharmacie']
-            pharmacie.numero_contact_pharmacie=request.data['numero_contact_pharmacie']
-            pharmacie.horaire_ouverture_pharmacie=request.data['horaire_ouverture_pharmacie']
-            pharmacie.degarde=request.data['degarde']
-            pharmacie.save()
-            
-             
-            refresh = RefreshToken.for_user(user)
-
-            
-            data = {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-                'detail': f"Information Pharmacie {pharmacie.nom_pharmacie} modifiée avec succès!",
-                'user_data':PharmacieSerializer(pharmacie,many=False).data
-                
-            }
-            response = Response(data, status=status.HTTP_201_CREATED)
-
-            return response
-        list_erreur=has_key_pharmacie(serializer.errors)
-            
+        # if serializer.is_valid(raise_exception=False):
+        #   Modifier et enregistrez un nouvel utilisateur
+        user = request.user
+        if 'user' in request.data and 'password' in request.data['user']:
+            user.set_password(request.data['user']['password'])
+            user.save()
         
-        return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
+        # validateData = serializer.validated_data
+        # Modifier les information du modèle Pharmacie
+        # if 'user' in validateData:
+        #      user_data = validateData.pop('user')
+            
+        pharmacie = request.user.pharmacie_user
+        # print(pharmacie)
+        # pharmacie.update(**validateData)
+        
+        pharmacie.nom_pharmacie=request.data['nom_pharmacie']
+        pharmacie.adresse_pharmacie=request.data['adresse_pharmacie']
+        pharmacie.commune_pharmacie=request.data['commune_pharmacie']
+        pharmacie.ville_pharmacie=request.data['ville_pharmacie']
+        pharmacie.numero_contact_pharmacie=request.data['numero_contact_pharmacie']
+        pharmacie.horaire_ouverture_pharmacie=request.data['horaire_ouverture_pharmacie']
+        pharmacie.degarde=request.data['degarde']
+        pharmacie.save()
+        
+            
+        refresh = RefreshToken.for_user(user)
+
+        
+        data = {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'detail': f"Information Pharmacie {pharmacie.nom_pharmacie} modifiée avec succès!",
+            'user_data':PharmacieSerializer(pharmacie,many=False).data
+            
+        }
+        response = Response(data, status=status.HTTP_201_CREATED)
+
+        return response
+        # list_erreur=has_key_pharmacie(serializer.errors)
+        # return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
         
 
+class PharmacieDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, pk):
+        try:
+            pharmacie = Pharmacie.objects.get(pk=pk)
+        except Pharmacie.DoesNotExist:
+            raise Http404
+        
+        return Response(PharmacieSerializer(pharmacie,many=False).data, status=status.HTTP_200_OK)
 
 class UserDetailView(RetrieveAPIView):
     serializer_class = UserSerializer
@@ -502,7 +521,6 @@ class get_Conseil(APIView):
         serializer = ConseilSerializer(conseils, many=True)
         return Response(serializer.data)
 
-
 class PasserCommandeClient(APIView):
     permission_classes = [IsClientOrReadOnly]
     def post(self, request):
@@ -532,8 +550,8 @@ class PasserCommandeClient(APIView):
             user_id = pharmacie.pk
         )
         
-        if pharmacie.firebase_token:
-            send_notification(notification, pharmacie.firebase_token)
+        # if pharmacie.firebase_token:
+        #     send_notification(notification, pharmacie.firebase_token)
         
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
@@ -542,7 +560,6 @@ class PasserCommandeClient(APIView):
         commandes = Commande.objects.filter(client=request.user.client_user)
         serializer = CommandeSerializer(commandes, many=True)
         return Response(serializer.data)
-    
     
 class GestionCommandeDetailClient(APIView):
     permission_classes = [IsClientOrReadOnly]
@@ -630,8 +647,8 @@ class PharmacieDetail(APIView):
                 user_id = client.pk
             )
                         
-            if client.firebase_token:
-                send_notification(notification, client.firebase_token)
+            # if client.firebase_token:
+            #     send_notification(notification, client.firebase_token)
             
         if request.data.get('statut'):
             commande.statut = request.data.get('statut')
@@ -653,8 +670,8 @@ class PharmacieDetail(APIView):
                     user_id = client.pk
                 )
                             
-                if client.firebase_token:
-                    send_notification(notification, client.firebase_token)
+                # if client.firebase_token:
+                #     send_notification(notification, client.firebase_token)
             
                 
             commande.save()
@@ -723,12 +740,16 @@ class RechercheList(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        request.data["client"]=request.user.client_user.pk
-        serializer = RechercheSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        request.data["client"]= request.user.client_user
+        
+        print(request.data)
+        
+        recherche = Recherche.objects.create(**request.data)
+        
+        serializer = RechercheSerializer(recherche, many=False)
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class RechercheDetail(APIView):
     permission_classes = [IsPharmacieOrClient]
@@ -779,8 +800,8 @@ class RechercheDetail(APIView):
                 user_id = recherche.client.pk
             )
             
-            if recherche.client.firebase_token:
-                send_notification(notification, recherche.client.firebase_token)
+            # if recherche.client.firebase_token:
+            #     send_notification(notification, recherche.client.firebase_token)
         
             # End Notification
             

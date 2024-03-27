@@ -2,11 +2,13 @@ from django.urls import path
 from .views import (
 	ClientRegistrationAPIView,
     ClientUpdateAPIView,
+    ClientDetailAPIView,
 	UserLoginAPIView,
 	
 	UserLogoutViewAPI,
     PharmacieRegistrationAPIView,
     PharmacieUpdateAPIView,
+    PharmacieDetailAPIView,
 
     UserDetailView,
     get_pharmacie,
@@ -37,6 +39,8 @@ urlpatterns = [
 	path('client/login/', UserLoginAPIView.as_view()),
 	path('client/logout/', UserLogoutViewAPI.as_view()),
 	path('client/update/', ClientUpdateAPIView.as_view()),
+	path('client/<int:pk>/', ClientDetailAPIView.as_view()),
+ 
 	 
 	path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
@@ -47,6 +51,8 @@ urlpatterns = [
 	path('pharmacie/login/', UserLoginAPIView.as_view()),
 	path('pharmacie/logout/', UserLogoutViewAPI.as_view()),
 	path('pharmacie/update/', PharmacieUpdateAPIView.as_view()),
+	path('pharmacie/<int:pk>/', PharmacieDetailAPIView.as_view()),
+ 
  
     #################   COMMANDES #################
     # URL pour gérer une commande spécifique pour le client

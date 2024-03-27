@@ -1,6 +1,6 @@
 import re
 import json
-import requests
+# import requests
 from django.core import serializers
 
 def has_key_client(errors):

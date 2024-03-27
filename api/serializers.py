@@ -85,12 +85,15 @@ class CommandeSerializer(serializers.ModelSerializer):
       
         
 class ConseilSerializer(serializers.ModelSerializer):
+    # pharmacie = PharmacieSerializer()
     class Meta:
         model = Conseil
         fields = '__all__'
         
 
 class RechercheSerializer(serializers.ModelSerializer):
+    
+    client = ClientSerializer()
     class Meta:
         model = Recherche
         fields = '__all__'
