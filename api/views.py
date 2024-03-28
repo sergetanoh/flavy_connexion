@@ -777,7 +777,7 @@ class RechercheDetail(APIView):
 
     def put(self, request, pk):
         recherche = self.get_object(pk)
-        request.data['client'] = recherche.client.pk
+        request.data['client'] = recherche.client
         if recherche.terminer == True:
             return Response({"detail":"Cette recherche est déjà terminée"}, status=status.HTTP_400_BAD_REQUEST)
         if request.user.is_pharmacie == True :
@@ -786,7 +786,7 @@ class RechercheDetail(APIView):
                 return Response({"detail":"La facture est obligatoire"}, status=status.HTTP_400_BAD_REQUEST)
             request.data['statut'] = "traite"
             request.data['en_attente'] = False
-            request.data['pharmacie_id'] = request.user.pharmacie_user.pk
+            request.data['pharmacie_id'] = request.user.pharmacie_user
             
             # Start Notification
             notification = Notification.objects.create(
@@ -813,11 +813,16 @@ class RechercheDetail(APIView):
                 return Response({"detail":"Requete incorrecte"}, status=status.HTTP_400_BAD_REQUEST)
     
         
-        serializer = RechercheSerializer(recherche, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # recherche = recherche.update(**request.data)
+        for key in request.data:
+            setattr(recherche, key, request.data[key])
+        recherche.save()
+        # recherche = Recherche.objects.get(pk=pk).update(**request.data)
+        serializer = RechercheSerializer(recherche, many=False)
+        # if serializer.is_valid():
+        #     serializer.save()
+        return Response(serializer.data)
+        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
         recherche = self.get_object(pk)
