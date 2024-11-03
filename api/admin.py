@@ -28,10 +28,21 @@ class UserAdmin(admin.ModelAdmin):
     list_display = ('email', 'username', 'is_active', 'is_staff', 'date_joined', 'is_pharmacie')
     search_fields = ('email', 'username')
 
+
+class InvoiceAdmin(admin.ModelAdmin):
+    list_display = ('client', 'commande', 'invoice_date', 'due_date', 'status', 'total_amount','facture', 'reference', 'created_at', 'updated_at')
+
+
+class InvoiceItemAdmin(admin.ModelAdmin):
+    list_display = ('invoice', 'description', 'quantity', 'unit_price')
+
+
 # Enregistrez les modèles avec leurs classes d'administration personnalisées
 
 admin.site.register(User, UserAdmin)
 admin.site.register(Client, ClientAdmin)
 admin.site.register(Pharmacie, PharmacieAdmin)
-admin.site.register(Commande)
+admin.site.register(Commande, )
 admin.site.register(Conseil)
+admin.site.register(Invoice, InvoiceAdmin)
+admin.site.register(InvoiceItem, InvoiceItemAdmin)

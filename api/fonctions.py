@@ -1,7 +1,11 @@
 import re
 import json
-# import requests
+import random
+import string
+import requests
 from django.core import serializers
+from .serializers import NotificationSerializer
+from .models import Invoice
 
 def has_key_client(errors):
     if isinstance(errors, dict):
@@ -135,7 +139,7 @@ def send_notification(notification, token_phone):
             'notification_type' : notification.type,
             'notification_id' : notification.id,
             'meta_data_id' : notification.data_id,
-            'notification' : serializers.serialize("json", notification),
+            'notification' : NotificationSerializer(notification, many=False).data,
             "title" : title,
             "body" : body,
 
@@ -158,5 +162,22 @@ def send_notification(notification, token_phone):
        
     except requests.exceptions.RequestException as e:
         print('FCM Send Error:', e)
+
+
+def generate_reference(length):
+    """
+    Génère un code alphanumérique de la longueur spécifiée.
+
+    :param length: Longueur de la chaîne à générer.
+    :return: Chaîne alphanumérique générée.
+    """
+    characters = string.ascii_letters + string.digits  # Lettres (majuscules et minuscules) + chiffres
+    ref = ''.join(random.choice(characters) for _ in range(length))
+
+    invoice = Invoice.objects.filter(reference=ref).first()
+    if invoice:
+        generate_reference(length)
+
+    return ref
 
 

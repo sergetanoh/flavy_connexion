@@ -25,7 +25,13 @@ from .views import (
     UserByTokenViewAPI,
     
     NotificationList, 
-    NotificationDetail
+    NotificationDetail,
+
+    InvoiceListCreateAPIView,
+    InvoiceRetrieveUpdateDestroyAPIView,
+    orderInvoices,
+    clientInvoices,
+    pharmacieInvoices
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -76,5 +82,12 @@ urlpatterns = [
     
     path('notifications/', NotificationList.as_view(), name='notification-list'),
     path('notifications/<int:pk>/', NotificationDetail.as_view(), name='Notification-detail'),
+
+    path('invoices/', InvoiceListCreateAPIView.as_view(), name='invoice-list-create'),
+    path('invoices/commande/<int:commande>/', orderInvoices.as_view(), name='commande-facturew'),
+    path('invoices/client/', clientInvoices.as_view(), name='commande-facturew'),
+    path('invoices/pharmacie/', pharmacieInvoices.as_view(), name='commande-facturew'),
+    path('invoices/<int:pk>/', InvoiceRetrieveUpdateDestroyAPIView.as_view(), name='invoice-detail'),
+
 ]
  

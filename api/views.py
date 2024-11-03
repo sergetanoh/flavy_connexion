@@ -1,5 +1,5 @@
-from .models import Client,User,Pharmacie,Commande,Conseil, Recherche, Notification
-from .serializers import ClientSerializer, UserLoginSerializer,PharmacieSerializer, UserSerializer, CommandeSerializer,ConseilSerializer, RechercheSerializer,  NotificationSerializer
+from .models import Client,User,Pharmacie,Commande,Conseil, Recherche, Notification, Invoice, InvoiceItem
+from .serializers import ClientSerializer, UserLoginSerializer,PharmacieSerializer, UserSerializer, CommandeSerializer,ConseilSerializer, RechercheSerializer,  NotificationSerializer, InvoiceSerializer, InvoiceItemSerializer
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed
 from .permissions import IsPharmacieOrReadOnly,IsSuperUserOrReadOnly,IsClientOrReadOnly,IsPharmacieCanModifyCommande, IsPharmacieOrClient
 from .backends import EmailBackend
-from .fonctions import has_key_client,has_key_pharmacie, generer_code, send_notification 
+from .fonctions import has_key_client,has_key_pharmacie, generer_code, send_notification, generate_reference
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.http import Http404
@@ -23,6 +23,7 @@ from drf_yasg import openapi
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from django.core.serializers import serialize
+from rest_framework import generics
 import jwt
 import re
 import datetime
@@ -142,6 +143,7 @@ class ClientUpdateAPIView(APIView):
         
         if 'num_pharmacie'  in request.data and request.data['num_pharmacie']:
             pharmacie=Pharmacie.objects.filter(num_pharmacie=request.data['num_pharmacie']).first()
+            print("pharmacie : ", pharmacie)
         
             if  not pharmacie:
                 return Response({"detail": "Désolé, aucune pharmacie trouvée avec ce identifiant."}, status=status.HTTP_400_BAD_REQUEST)
@@ -549,9 +551,12 @@ class PasserCommandeClient(APIView):
             user_type = 'pharmacie',
             user_id = pharmacie.pk
         )
+
         
-        # if pharmacie.firebase_token:
-        #     send_notification(notification, pharmacie.firebase_token)
+        
+        if pharmacie.firebase_token:
+            # Sérialisez l'instance de notification
+            send_notification(notification, pharmacie.firebase_token)
         
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
@@ -615,8 +620,8 @@ class PharmacieDetail(APIView):
             raise Http404
 
     def get(self, request, pk):
-        customer = self.get_object(pk)
-        serializer = CommandeSerializer(customer)
+        commande = self.get_object(pk)
+        serializer = CommandeSerializer(commande)
         return Response(serializer.data)
 
     def put(self, request, pk):
@@ -628,14 +633,53 @@ class PharmacieDetail(APIView):
         
         if request.data.get('statut')=='livree' and not commande.en_attente:
             return Response({"detail": "La commande a déjà été validée."}, status=status.HTTP_400_BAD_REQUEST)
-            
-        if request.data.get('facture'):
+        
+        if request.data.get('facture') and request.data.get('items'):
+            print("Welcome")
             # Valider la commande
             commande.en_attente = False
             commande.statut = 'traite'
-            commande.Facture = request.data.get('facture')
             commande.save()
+
+            items = request.data.get('items')
+            if len(items) < 1:
+                return Response({"detail": "La liste des médicaments est vide."}, status=status.HTTP_400_BAD_REQUEST)
+
+            invoice= Invoice.objects.filter(commande = commande.pk).first()
+            if not invoice:
+                # Register Invoice
+                invoice = Invoice.objects.create(
+                    client = commande.client,
+                    commande = commande,
+                    due_date = request.data.get('date_echance'), 
+                    facture = request.data.get('facture'),
+                    status ='impaye',
+                    reference = generate_reference(16)
+                )
+            else:
+                if request.data.get('date_echance'):
+                    invoice.due_date = request.data.get('date_echance')
+                    invoice.save()
+                if request.data.get('facture'):
+                    invoice.facture = request.data.get('facture')
+                    invoice.save()
+
+                # Supprimer les ancie
+                InvoiceItem.objects.filter(invoice=invoice.pk).delete()
             
+            # register Items
+            for item in items:
+                InvoiceItem.objects.create(
+                    invoice = invoice,
+                    description = item["description"],  # Description du medicament
+                    quantity = item["quantity"],
+                    unit_price = item["unit_price"]
+                )
+
+            # Calcul du montant total
+            invoice.calculate_total()
+
+
             notification = Notification.objects.create(
                 title = "Nouvelle réponse pharmacie",
                 message = "Vous avez reçu une réponse à votre commande #"+ str(commande.pk),
@@ -647,8 +691,8 @@ class PharmacieDetail(APIView):
                 user_id = client.pk
             )
                         
-            # if client.firebase_token:
-            #     send_notification(notification, client.firebase_token)
+            if client.firebase_token:
+                send_notification(notification, client.firebase_token)
             
         if request.data.get('statut'):
             commande.statut = request.data.get('statut')
@@ -661,7 +705,7 @@ class PharmacieDetail(APIView):
                 
                 notification = Notification.objects.create(
                     title = "Commande rejetée",
-                    message = "Nous sommes dans le regret de vous annoncer que nous ne sommes pas à mesure de repondre favorablement à votre commande numero #"+str(commande.pk),
+                    message = "Nous sommes dans le regret de vous annoncer que nous ne sommes pas à mesure de répondre favorablement à votre commande numero #"+str(commande.pk),
                     type = "commande",
                     data_id = commande.pk,
                     metadata = CommandeSerializer(commande, many=False).data,
@@ -670,8 +714,8 @@ class PharmacieDetail(APIView):
                     user_id = client.pk
                 )
                             
-                # if client.firebase_token:
-                #     send_notification(notification, client.firebase_token)
+                if client.firebase_token:
+                    send_notification(notification, client.firebase_token)
             
                 
             commande.save()
@@ -800,8 +844,8 @@ class RechercheDetail(APIView):
                 user_id = recherche.client.pk
             )
             
-            # if recherche.client.firebase_token:
-            #     send_notification(notification, recherche.client.firebase_token)
+            if recherche.client.firebase_token:
+                send_notification(notification, recherche.client.firebase_token)
         
             # End Notification
             
@@ -898,3 +942,59 @@ class NotificationDetail(APIView):
         notification = self.get_object(pk)
         notification.delete()
         return Response({'detail': "Notification supprimée"},status=status.HTTP_200_OK)
+
+
+class clientInvoices(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+        clt=Client.objects.get(user=request.user.pk)
+        invoices = Invoice.objects.filter(client=clt.pk)
+        serializer = InvoiceSerializer(invoices, many=True)
+        return Response(serializer.data)
+
+class orderInvoices(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+
+
+    def get_order(self, pk):
+        try:
+            return Commande.objects.get(pk=pk)
+        except Commande.DoesNotExist:
+            raise Http404
+
+    def get(self, request, commande):
+        commande = self.get_order(commande)
+
+        invoices = Invoice.objects.filter(commande=commande.pk)
+        serializer = InvoiceSerializer(invoices, many=True)
+        return Response(serializer.data)
+
+
+
+class pharmacieInvoices(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+
+
+    def get(self, request):
+        phmcie =Pharmacie.objects.get(user=request.user.pk)
+
+        invoices = Invoice.objects.filter(commande__pharmacie_id__id=phmcie.pk)
+        serializer = InvoiceSerializer(invoices, many=True)
+        return Response(serializer.data)
+
+
+class InvoiceListCreateAPIView(generics.ListCreateAPIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+    queryset = Invoice.objects.prefetch_related('items')
+    serializer_class = InvoiceSerializer
+
+class InvoiceRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+    queryset = Invoice.objects.prefetch_related('items')
+    serializer_class = InvoiceSerializer
