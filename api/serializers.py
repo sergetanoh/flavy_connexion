@@ -18,34 +18,6 @@ class UserSerializer(serializers.ModelSerializer):
 		db_instance.save()
 		return db_instance
 
-# Ajoutez un champ 'fullname' dans le serializer ClientSerializer
-class ClientSerializer(serializers.ModelSerializer):
-    SEXE_CHOICES = [
-        ('Homme', 'Homme'),
-        ('Femme', 'Femme'),
-    ]
-
-    # On ajoute le champ 'user' avec le sérialiseur UserSerializer
-    user = UserSerializer()
-
-    class Meta:
-        model = Client
-        fields = "__all__"
-        # fields = ['user', 'prenom', 'adresse', 'ville', 'phone', 'image', 'n_cmu', 'n_assurance', 'sexe', 'maladie_chronique', 'poids', 'taille','num_pharmacie', 'est_actif', 'date_creation', 'date_modification']
-        extra_kwargs = {'date_inscription': {'read_only': True}}  # Empêche la modification de la date_inscription
-
-    # On override la méthode create pour créer d'abord l'utilisateur puis le client
-    def create(self, validated_data):
-        # Extraire les données utilisateur du sérialiseur ClientSerializer
-        user_data = validated_data.pop('user')
-
-        # Créer un utilisateur avec les données extraites
-        user = get_user_model().objects.create(**user_data)
-
-        # Créer le client associé à cet utilisateur
-        client = Client.objects.create(user=user, **validated_data)
-
-        return client
 
 class PharmacieSerializer(serializers.ModelSerializer):
     user = UserSerializer()
@@ -69,7 +41,52 @@ class PharmacieSerializer(serializers.ModelSerializer):
         pharmacie = Pharmacie.objects.create(user=user, **validated_data)
         
         return pharmacie
+   
+
+# Ajoutez un champ 'fullname' dans le serializer ClientSerializer
+class ClientSerializer(serializers.ModelSerializer):
+    SEXE_CHOICES = [
+        ('Homme', 'Homme'),
+        ('Femme', 'Femme'),
+    ]
+
+    # On ajoute le champ 'user' avec le sérialiseur UserSerializer
+    user = UserSerializer()
+
+    pharmacie = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Client
+        fields = "__all__"
+        # fields = ['user', 'prenom', 'adresse', 'ville', 'phone', 'image', 'n_cmu', 'n_assurance', 'sexe', 'maladie_chronique', 'poids', 'taille','num_pharmacie', 'est_actif', 'date_creation', 'date_modification']
+        extra_kwargs = {'date_inscription': {'read_only': True}}  # Empêche la modification de la date_inscription
+
     
+    def get_pharmacie(self, obj):
+        try:
+            # Assurez-vous de récupérer une instance réelle de Pharmacie
+            pharmacie = Pharmacie.objects.get(num_pharmacie=obj.num_pharmacie)
+            return PharmacieSerializer(pharmacie).data
+        except Pharmacie.DoesNotExist:
+            return None
+        except Exception as e:
+            # Log l'exception si nécessaire pour le débogage
+            print(f"Erreur lors de l'accès à Pharmacie: {e}")
+            return None
+
+    # On override la méthode create pour créer d'abord l'utilisateur puis le client
+    def create(self, validated_data):
+        # Extraire les données utilisateur du sérialiseur ClientSerializer
+        user_data = validated_data.pop('user')
+
+        # Créer un utilisateur avec les données extraites
+        user = get_user_model().objects.create(**user_data)
+
+        # Créer le client associé à cet utilisateur
+        client = Client.objects.create(user=user, **validated_data)
+
+        return client
+ 
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.CharField(max_length=100)
     username = serializers.CharField(max_length=100, read_only=True)
