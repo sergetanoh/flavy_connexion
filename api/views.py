@@ -135,6 +135,8 @@ class ClientRegistrationAPIView(APIView):
         return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
 
 class ClientUpdateAPIView(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (IsClientOrReadOnly,)
     
     def put(self, request):
         # Créez et enregistrez un nouvel utilisateur
@@ -191,8 +193,6 @@ class ClientDetailAPIView(APIView):
         return Response(ClientSerializer(client,many=False).data, status=status.HTTP_200_OK)
 
 class PharmacieRegistrationAPIView(APIView):
-    authentication_classes = (JWTAuthentication,)
-    permission_classes = (AllowAny,)
 
     serializer_class = PharmacieSerializer
     example_request = {
