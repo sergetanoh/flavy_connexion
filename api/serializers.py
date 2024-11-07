@@ -105,8 +105,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class CommandeSerializer(serializers.ModelSerializer):
+    commande_invoices = InvoiceSerializer(many=True, read_only=True)
     client = ClientSerializer()
-    factures = InvoiceSerializer(many=True, read_only=True)
+
     class Meta:
         model=Commande
         fields='__all__'

@@ -179,6 +179,7 @@ class ClientUpdateAPIView(APIView):
 
 
 class ClientDetailAPIView(APIView):
+    authentication_classes = (JWTAuthentication,)
     permission_classes = [IsAuthenticated]
     
     def get(self,request, pk):
@@ -190,9 +191,10 @@ class ClientDetailAPIView(APIView):
         return Response(ClientSerializer(client,many=False).data, status=status.HTTP_200_OK)
 
 class PharmacieRegistrationAPIView(APIView):
-    serializer_class = PharmacieSerializer
-
+    authentication_classes = (JWTAuthentication,)
     permission_classes = (AllowAny,)
+
+    serializer_class = PharmacieSerializer
     example_request = {
         "user": {
             "email": "pharmacie@example.com",
@@ -286,9 +288,10 @@ class PharmacieRegistrationAPIView(APIView):
         return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
 
 class PharmacieUpdateAPIView(APIView):
-    serializer_class = PharmacieSerializer
-
+    authentication_classes = (JWTAuthentication,)
     permission_classes = [IsAuthenticated]
+
+    serializer_class = PharmacieSerializer
     def put(self, request):
         
         serializer = self.serializer_class(data=request.data)
@@ -339,7 +342,9 @@ class PharmacieUpdateAPIView(APIView):
         
 
 class PharmacieDetailAPIView(APIView):
+    authentication_classes = (JWTAuthentication,)
     permission_classes = [IsAuthenticated]
+
     def get(self, request, pk):
         try:
             pharmacie = Pharmacie.objects.get(pk=pk)
@@ -349,8 +354,10 @@ class PharmacieDetailAPIView(APIView):
         return Response(PharmacieSerializer(pharmacie,many=False).data, status=status.HTTP_200_OK)
 
 class UserDetailView(RetrieveAPIView):
-    serializer_class = UserSerializer
+    authentication_classes = (JWTAuthentication,)
     permission_classes = [IsAuthenticated]
+
+    serializer_class = UserSerializer
 
     @swagger_auto_schema(
         operation_summary='Récupérer les informations de l\'utilisateur connecté',
@@ -478,7 +485,8 @@ class UserLogoutViewAPI(APIView):
         operation_description='Cette vue vous permet de déconnecter un utilisateur en invalidant son token d\'accès.',
     )
     def post(self, request):
-        user_token = request.COOKIES.get('access_token', None)
+        authentication_classes = (JWTAuthentication,)
+        permission_classes = (AllowAny,)
 
         if user_token:
             try:
@@ -504,12 +512,18 @@ class UserLogoutViewAPI(APIView):
         return response
 
 class get_pharmacie(APIView):
+  authentication_classes = (JWTAuthentication,)
+  permission_classes = (AllowAny,)
+
   def get(self,request):
         pharmacie=Pharmacie.objects.all()
         serializer=PharmacieSerializer(pharmacie,many=True)
         return Response(serializer.data)
         
 class GetPharmacieGarde(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+
     def get(self, request):
         # Récupérer les pharmacies de garde
         pharmacies_de_garde = Pharmacie.objects.filter(degarde=True)
@@ -524,7 +538,9 @@ class get_Conseil(APIView):
         return Response(serializer.data)
 
 class PasserCommandeClient(APIView):
-    permission_classes = [IsClientOrReadOnly]
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (IsClientOrReadOnly,)
+
     def post(self, request):
         request_data = request.data
         clt=Client.objects.get(user=request.user.pk)
@@ -567,7 +583,9 @@ class PasserCommandeClient(APIView):
         return Response(serializer.data)
     
 class GestionCommandeDetailClient(APIView):
+    authentication_classes = (JWTAuthentication,)
     permission_classes = [IsClientOrReadOnly]
+
     def get_object(self, pk):
         try:
             return Commande.objects.get(pk=pk)
@@ -580,12 +598,23 @@ class GestionCommandeDetailClient(APIView):
         # Vérifier si la commande peut être modifiée
         if commande.en_attente:
             clt=Client.objects.get(user=request.user.pk)
-            request.data['client'] = clt.pk
-            serializer = CommandeSerializer(commande, data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            request.data['client'] = clt
+
+            if request.data['pharmacie_id']:
+                phmacie =Pharmacie.objects.get(pk=request.data['pharmacie_id'])
+                if phmacie:
+                    request.data['pharmacie_id'] = phmacie
+
+            for cle, valeur in request.data.items():
+                setattr(commande, cle, valeur)
+
+            commande.save()
+
+            serializer = CommandeSerializer(commande)
+           
+
+            return Response(serializer.data)
+            # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response({"detail": "La commande ne peut pas être modifiée car elle n'est plus en attente."}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -601,6 +630,7 @@ class GestionCommandeDetailClient(APIView):
             return Response({"detail": "La commande ne peut pas être supprimée car elle n'est plus en attente."}, status=status.HTTP_400_BAD_REQUEST)    
 
 class CommandesPharmacietous(APIView):
+    authentication_classes = (JWTAuthentication,)
     permission_classes = [IsPharmacieCanModifyCommande]
     
     def get(self, request):
@@ -612,7 +642,9 @@ class CommandesPharmacietous(APIView):
         
 
 class PharmacieDetail(APIView):
+    authentication_classes = (JWTAuthentication,)
     permission_classes = [IsPharmacieCanModifyCommande]
+
     def get_object(self, pk):
         try:
             return Commande.objects.get(pk=pk)
@@ -728,6 +760,7 @@ class PharmacieDetail(APIView):
         return Response({"detail": "Utilisateur supprimée avec succès"}, status=status.HTTP_200_OK)        
     
 class ConseilDetail(APIView):
+    authentication_classes = (JWTAuthentication,)
     permission_classes = [IsPharmacieCanModifyCommande]
     
     def get_object(self, pk):
@@ -771,6 +804,7 @@ class ConseilDetail(APIView):
         return Response({"detail": "Conseil supprimé avec succès"}, status=status.HTTP_200_OK)    
     
 class RechercheList(APIView):
+    authentication_classes = (JWTAuthentication,)
     permission_classes = [IsPharmacieOrClient]
     
     def get(self, request):
@@ -796,6 +830,7 @@ class RechercheList(APIView):
         # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class RechercheDetail(APIView):
+    authentication_classes = (JWTAuthentication,)
     permission_classes = [IsPharmacieOrClient]
     
     def get_object(self, pk):
@@ -990,11 +1025,13 @@ class pharmacieInvoices(APIView):
 class InvoiceListCreateAPIView(generics.ListCreateAPIView):
     authentication_classes = (JWTAuthentication,)
     permission_classes = (AllowAny,)
+
     queryset = Invoice.objects.prefetch_related('items')
     serializer_class = InvoiceSerializer
 
 class InvoiceRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     authentication_classes = (JWTAuthentication,)
     permission_classes = (AllowAny,)
+
     queryset = Invoice.objects.prefetch_related('items')
     serializer_class = InvoiceSerializer
