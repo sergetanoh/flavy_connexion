@@ -136,6 +136,7 @@ class ClientRegistrationAPIView(APIView):
 
 class ClientUpdateAPIView(APIView):
     authentication_classes = (JWTAuthentication,)
+    
     permission_classes = (IsClientOrReadOnly,)
     
     def put(self, request):
