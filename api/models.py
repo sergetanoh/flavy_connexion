@@ -251,7 +251,7 @@ class InvoicePayment(models.Model):
     amount_total = models.CharField(max_length=255, blank=True, null=True)
     status = models.CharField(max_length=255, blank=True, null=True)
     type_transaction = models.CharField(max_length=255, blank=True, null=True)
-    type_payment = models.DateTimeField(blank=True, null=True)
+    type_payment = models.CharField(max_length=255,blank=True, null=True)
     date = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
