@@ -1,5 +1,5 @@
-from .models import Client,User,Pharmacie,Commande,Conseil, Recherche, Notification, Invoice, InvoiceItem
-from .serializers import ClientSerializer, UserLoginSerializer,PharmacieSerializer, UserSerializer, CommandeSerializer,ConseilSerializer, RechercheSerializer,  NotificationSerializer, InvoiceSerializer, InvoiceItemSerializer
+from .models import Client,User,Pharmacie,Commande,Conseil, Recherche, Notification, Invoice, InvoiceItem, InvoicePayment
+from .serializers import ClientSerializer, UserLoginSerializer,PharmacieSerializer, UserSerializer, CommandeSerializer,ConseilSerializer, RechercheSerializer,  NotificationSerializer, InvoiceSerializer, InvoicePaymentSerializer
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -1020,6 +1020,33 @@ class pharmacieInvoices(APIView):
 
         invoices = Invoice.objects.filter(commande__pharmacie_id__id=phmcie.pk)
         serializer = InvoiceSerializer(invoices, many=True)
+        return Response(serializer.data)
+    
+class initiate_payment(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+        clt=Client.objects.get(user=request.user.pk)
+        invoice = Invoice.objects.get(pk=request.data["invoice"])
+        if not invoice:
+            return Response("Facture introuvable", status=status.HTTP_400_BAD_REQUEST)
+        
+
+        if invoice.client.pk != clt.pk :
+            return Response({"detail":"Vous ne pouvez pas payer cette facture"}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+        payment = InvoicePayment.objects.create(
+            reference = generate_reference(32),
+            invoice = invoice,
+            amount_total = invoice.total_amount,
+            status = "initie",
+            currency = "XOF"
+        )
+        payment.save()
+
+        serializer = InvoicePaymentSerializer(payment)
         return Response(serializer.data)
 
 

@@ -237,3 +237,25 @@ class InvoiceItem(models.Model):
         Calcule le prix total pour cet item (quantité * prix unitaire).
         """
         return self.quantity * self.unit_price
+    
+
+
+class InvoicePayment(models.Model):
+    reference = models.CharField(max_length=255, unique=True)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='payments')
+    number_user = models.CharField(max_length=255, blank=True, null=True)  
+    name_user = models.CharField(max_length=255, blank=True, null=True)  
+    email_user = models.CharField(max_length=255, blank=True, null=True)
+    country_user = models.CharField(max_length=255, blank=True, null=True)
+    currency = models.CharField(max_length=255, blank=True, null=True)
+    amount_total = models.CharField(max_length=255, blank=True, null=True)
+    status = models.CharField(max_length=255, blank=True, null=True)
+    type_transaction = models.CharField(max_length=255, blank=True, null=True)
+    type_payment = models.DateTimeField(blank=True, null=True)
+    date = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Payment #{self.reference}"
+

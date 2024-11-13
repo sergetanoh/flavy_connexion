@@ -5,7 +5,7 @@ import string
 import requests
 from django.core import serializers
 from .serializers import NotificationSerializer
-from .models import Invoice
+from .models import Invoice, InvoicePayment
 
 def has_key_client(errors):
     if isinstance(errors, dict):
@@ -164,7 +164,7 @@ def send_notification(notification, token_phone):
         print('FCM Send Error:', e)
 
 
-def generate_reference(length):
+def generate_reference(length, type="invoice"):
     """
     Génère un code alphanumérique de la longueur spécifiée.
 
@@ -174,8 +174,13 @@ def generate_reference(length):
     characters = string.ascii_letters + string.digits  # Lettres (majuscules et minuscules) + chiffres
     ref = ''.join(random.choice(characters) for _ in range(length))
 
-    invoice = Invoice.objects.filter(reference=ref).first()
-    if invoice:
+    if type == "invoice":
+        item = Invoice.objects.filter(reference=ref).first()
+
+    if type == "payment":
+        item = InvoicePayment.objects.filter(reference=ref).first()
+
+    if item:
         generate_reference(length)
 
     return ref

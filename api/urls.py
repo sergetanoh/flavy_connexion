@@ -31,7 +31,8 @@ from .views import (
     InvoiceRetrieveUpdateDestroyAPIView,
     orderInvoices,
     clientInvoices,
-    pharmacieInvoices
+    pharmacieInvoices,
+    initiate_payment
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -88,6 +89,10 @@ urlpatterns = [
     path('invoices/client/', clientInvoices.as_view(), name='commande-facturew'),
     path('invoices/pharmacie/', pharmacieInvoices.as_view(), name='commande-facturew'),
     path('invoices/<int:pk>/', InvoiceRetrieveUpdateDestroyAPIView.as_view(), name='invoice-detail'),
+
+    path('invoices/init-payment/', initiate_payment.as_view(), name='invoice-payment'),
+
+    
 
 ]
  

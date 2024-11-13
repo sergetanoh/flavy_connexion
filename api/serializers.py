@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import Client,Pharmacie
-from .models import Commande,Commande,Conseil, Recherche, Notification, Invoice, InvoiceItem
+from .models import Commande,Commande,Conseil, Recherche, Notification, Invoice, InvoiceItem, InvoicePayment
 import pdb
 
 class UserSerializer(serializers.ModelSerializer):
@@ -97,9 +97,15 @@ class InvoiceItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = InvoiceItem
         fields = '__all__'
+
+class InvoicePaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InvoicePayment
+        fields = '__all__'
         
 class InvoiceSerializer(serializers.ModelSerializer):
     items = InvoiceItemSerializer(many=True, read_only=True)
+    payments = InvoicePaymentSerializer(many=True, read_only=True)
     class Meta:
         model = Invoice
         fields = '__all__'
