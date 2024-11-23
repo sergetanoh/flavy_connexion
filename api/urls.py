@@ -22,6 +22,7 @@ from .views import (
     
     RechercheList,
     RechercheDetail,
+    RechercheComamnde,
     UserByTokenViewAPI,
     
     NotificationList, 
@@ -79,6 +80,8 @@ urlpatterns = [
     path('conseils/<int:pk>/', ConseilDetail.as_view(), name='conseil_detail'),
 
     path('recherches/', RechercheList.as_view(), name='recherche-list'),
+    
+    path('recherches/<int:pk>/commande', RechercheComamnde.as_view(), name='recherche-commande'),
     path('recherches/<int:pk>/', RechercheDetail.as_view(), name='recherche-detail'),
     
     path('notifications/', NotificationList.as_view(), name='notification-list'),

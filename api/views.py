@@ -838,8 +838,8 @@ class RechercheDetail(APIView):
         try:
             return Recherche.objects.get(pk=pk)
         except Recherche.DoesNotExist:
-            # raise Http404
-            return Response({"detail":"Recherche introuvable"}, status=status.HTTP_404_NOT_FOUND)
+            raise Http404
+            #return Response({"detail":"Recherche introuvable"}, status=status.HTTP_404_NOT_FOUND)
 
     def get(self, request, pk):
         recherche = self.get_object(pk)
@@ -857,16 +857,79 @@ class RechercheDetail(APIView):
 
     def put(self, request, pk):
         recherche = self.get_object(pk)
+        
         request.data['client'] = recherche.client
+        request.data['recherche'] = recherche
         if recherche.terminer == True:
             return Response({"detail":"Cette recherche est déjà terminée"}, status=status.HTTP_400_BAD_REQUEST)
         if request.user.is_pharmacie == True :
-            # return Response({"detail":"Désolé, vous ne pouvez effectuer à cette action"}, status=status.HTTP_403_FORBIDDEN)
-            if  not('facture' in request.data) or not(request.data['facture']):
+            if not('facture' in request.data) or not(request.data['facture']):
                 return Response({"detail":"La facture est obligatoire"}, status=status.HTTP_400_BAD_REQUEST)
-            request.data['statut'] = "traite"
-            request.data['en_attente'] = False
-            request.data['pharmacie_id'] = request.user.pharmacie_user
+            
+            if recherche.en_attente == False or recherche.statut == "traite":
+                return Response({"detail":"Desolé, cette recherche a dejà été traitée"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            
+            orderData = { 'nom_medicament': recherche.nom_medicament}
+            orderData['nom_medicament'] = recherche.nom_medicament
+            orderData['ordornance'] = recherche.ordonnance
+            orderData['quantite'] = recherche.quantite
+            orderData['recherche'] = recherche
+            orderData['client'] = recherche.client
+            orderData['pharmacie_id'] = request.user.pharmacie_user
+
+            commande = Commande.objects.create(**orderData)
+
+            if request.data.get('facture') and request.data.get('items'):
+                # Valider la commande
+                commande.en_attente = False
+                commande.statut = 'traite'
+                commande.save()
+
+                items = request.data.get('items')
+                if len(items) < 1:
+                    return Response({"detail": "La liste des médicaments est vide."}, status=status.HTTP_400_BAD_REQUEST)
+
+                invoice= Invoice.objects.filter(commande = commande.pk).first()
+                if not invoice:
+                    # Register Invoice
+                    invoice = Invoice.objects.create(
+                        client = commande.client,
+                        commande = commande,
+                        due_date = request.data.get('date_echance'), 
+                        facture = request.data.get('facture'),
+                        status ='impaye',
+                        reference = generate_reference(16)
+                    )
+                else:
+                    if request.data.get('date_echance'):
+                        invoice.due_date = request.data.get('date_echance')
+                        invoice.save()
+                    if request.data.get('facture'):
+                        invoice.facture = request.data.get('facture')
+                        invoice.save()
+
+                    # Supprimer les ancie
+                    InvoiceItem.objects.filter(invoice=invoice.pk).delete()
+                
+                # register Items
+                for item in items:
+                    InvoiceItem.objects.create(
+                        invoice = invoice,
+                        description = item["description"],  # Description du medicament
+                        quantity = item["quantity"],
+                        unit_price = item["unit_price"]
+                    )
+
+                # Calcul du montant total
+                invoice.calculate_total()
+
+            #Mise à jour de la recherche
+            recherche.statut = "traite"
+            recherche.facture = request.data.get('facture')
+            recherche.en_attente = False
+            recherche.pharmacie_id = request.user.pharmacie_user
+            recherche.save()
             
             # Start Notification
             notification = Notification.objects.create(
@@ -882,27 +945,29 @@ class RechercheDetail(APIView):
             
             if recherche.client.firebase_token:
                 send_notification(notification, recherche.client.firebase_token)
-        
+
             # End Notification
+
+            serializer = RechercheSerializer(recherche, many=False)
+            return Response(serializer.data)
             
         if request.user.is_pharmacie != True :
             if recherche.client.pk != request.user.client_user.pk:
                 return Response({"detail":"Désolé, vous ne pouvez effectuer à cette action"}, status=status.HTTP_403_FORBIDDEN)
-            print('terminer' in request.data)
+            
             if  not('terminer' in request.data) or request.data['terminer'] == False:
                 return Response({"detail":"Requete incorrecte"}, status=status.HTTP_400_BAD_REQUEST)
-    
+            else:
+                recherche.en_attente = False
+                recherche.statut = "termine"
+                recherche.save()
         
-        # recherche = recherche.update(**request.data)
         for key in request.data:
             setattr(recherche, key, request.data[key])
         recherche.save()
-        # recherche = Recherche.objects.get(pk=pk).update(**request.data)
+
         serializer = RechercheSerializer(recherche, many=False)
-        # if serializer.is_valid():
-        #     serializer.save()
         return Response(serializer.data)
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
         recherche = self.get_object(pk)
@@ -911,6 +976,27 @@ class RechercheDetail(APIView):
                 return Response({"detail":"Désolé, vous ne pouvez effectuer à cette action"}, status=status.HTTP_403_FORBIDDEN)
         recherche.delete()
         return Response({"detail": "Recherche supprimée avec succès"},status=status.HTTP_200_OK)
+
+
+class RechercheComamnde(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = [IsPharmacieOrClient]
+    
+    def get_object(self, pk):
+        try:
+            return Recherche.objects.get(pk=pk)
+        except Recherche.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk):
+        recherche = self.get_object(pk)
+
+        if recherche.en_attente == True:
+            return Response({"detail":"Cette recherche n'a pas encore été traitée"}, status=status.HTTP_403_FORBIDDEN)
+
+        commande = Commande.objects.filter(recherche=recherche.pk).first()
+        serializer = CommandeSerializer(commande)
+        return Response(serializer.data)
 
 class NotificationList(APIView):
     authentication_classes = (JWTAuthentication,)
@@ -958,10 +1044,7 @@ class NotificationDetail(APIView):
         serializer = NotificationSerializer(notification)
         return Response(serializer.data)
 
-    def put(self, request, pk):
-        data=request.data
-        
-        # notification = Notification.objects.get(pk=pk).update(**data)
+    def put(self, request, pk):        
         notification = self.get_object(pk)
         
         # Mettre à jour les attributs de l'objet avec les valeurs fournies dans le dictionnaire

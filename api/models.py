@@ -99,49 +99,8 @@ class Pharmacie(models.Model):
     
     def __str__(self):
         return f"{self.nom_pharmacie}"
-    
-
-class Commande(models.Model):
-    STATUT_CHOICES = [
-        ('en_attente', 'En attente'),
-        ('traite', 'Traité'),
-        ('en_cours', 'En cours de livraison'),
-        ('livree', 'Livrée'),
-        ('termine', 'Terminé'),
-        ('annulee', 'Annulée'),
-    ]
-
-    pharmacie_id = models.ForeignKey(Pharmacie, on_delete=models.CASCADE)
-    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="commande_client")
-    ordornance=models.CharField(max_length=255, blank=True, null=True)
-    nom_medicament=models.CharField(max_length=255, blank=True, null=True)
-    description=models.TextField(blank=True, null=True)
-    quantite = models.PositiveIntegerField(default=1)
-    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='en_attente')
-    en_attente=models.BooleanField(default=True)
-    terminer=models.BooleanField(default=False)
-    date_creation = models.DateTimeField(auto_now_add=True)
-    date_livraison = models.DateTimeField(null=True, blank=True)
-    
-    est_actif = models.BooleanField(default=True)
-    date_modification =  models.DateTimeField(auto_now=True, blank=True, null=True)
-
-    def __str__(self):
-        return f"Commande {self.id} - {self.client.prenom}"    
 
 
-class Conseil(models.Model):
-    titre = models.CharField(max_length=255)
-    message = models.TextField()
-    pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE, related_name="pharmacie_user")
-    date_creation = models.DateTimeField(auto_now_add=True)
-    est_actif = models.BooleanField(default=True)
-    date_modification =  models.DateTimeField(auto_now=True, blank=True, null=True)
-
-    def __str__(self):
-        return self.titre
-    
-    
 class Recherche(models.Model):
     STATUT_CHOICES = [
         ('en_attente', 'En attente'),
@@ -149,7 +108,7 @@ class Recherche(models.Model):
         ('termine', 'Terminé'),
         ('annulee', 'Annulée'),
     ]
-    client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="recherche_client")
     ordonnance = models.CharField(max_length=255, blank=True, null=True)
     nom_medicament = models.CharField(max_length=255, blank=True, null=True)
     quantite =  models.PositiveIntegerField(default=1)
@@ -165,6 +124,51 @@ class Recherche(models.Model):
    
     def __str__(self):
         return "Recherche #"+str(self.pk)
+    
+
+class Commande(models.Model):
+    STATUT_CHOICES = [
+        ('en_attente', 'En attente'),
+        ('traite', 'Traité'),
+        ('en_cours', 'En cours de livraison'),
+        ('livree', 'Livrée'),
+        ('termine', 'Terminé'),
+        ('annulee', 'Annulée'),
+    ]
+
+    pharmacie_id = models.ForeignKey(Pharmacie, on_delete=models.CASCADE)
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="commande_client")
+    recherche = models.ForeignKey(Recherche, on_delete=models.CASCADE, related_name="commande_recherche", blank=True, null=True)
+    ordornance=models.CharField(max_length=255, blank=True, null=True)
+    nom_medicament=models.CharField(max_length=255, blank=True, null=True)
+    description=models.TextField(blank=True, null=True)
+    quantite = models.PositiveIntegerField(default=1)
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='en_attente')
+    en_attente=models.BooleanField(default=True)
+    terminer=models.BooleanField(default=False)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_livraison = models.DateTimeField(null=True, blank=True)
+    
+    est_actif = models.BooleanField(default=True)
+    date_modification =  models.DateTimeField(auto_now=True, blank=True, null=True)
+
+    def __str__(self):
+        
+        return f"Commande {self.id} - {self.client.prenom}"    
+
+
+class Conseil(models.Model):
+    titre = models.CharField(max_length=255)
+    message = models.TextField()
+    pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE, related_name="pharmacie_user")
+    date_creation = models.DateTimeField(auto_now_add=True)
+    est_actif = models.BooleanField(default=True)
+    date_modification =  models.DateTimeField(auto_now=True, blank=True, null=True)
+
+    def __str__(self):
+        return self.titre
+    
+    
     
     
 class Notification(models.Model):

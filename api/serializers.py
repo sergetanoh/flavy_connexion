@@ -110,6 +110,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
         model = Invoice
         fields = '__all__'
 
+
 class CommandeSerializer(serializers.ModelSerializer):
     commande_invoices = InvoiceSerializer(many=True, read_only=True)
     client = ClientSerializer()
@@ -118,6 +119,13 @@ class CommandeSerializer(serializers.ModelSerializer):
         model=Commande
         fields='__all__'
       
+
+class RechercheSerializer(serializers.ModelSerializer):
+    client = ClientSerializer()
+    # commande_recherche = CommandeSerializer()
+    class Meta:
+        model = Recherche
+        fields = '__all__'
         
 class ConseilSerializer(serializers.ModelSerializer):
     # pharmacie = PharmacieSerializer()
@@ -125,13 +133,6 @@ class ConseilSerializer(serializers.ModelSerializer):
         model = Conseil
         fields = '__all__'
         
-
-class RechercheSerializer(serializers.ModelSerializer):
-    
-    client = ClientSerializer()
-    class Meta:
-        model = Recherche
-        fields = '__all__'
         
         
 class NotificationSerializer(serializers.ModelSerializer):
