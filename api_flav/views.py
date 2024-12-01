@@ -10,7 +10,7 @@ def notification(request):
             data = json.loads(request.body)
 
             # Extraire le transaction_id et le status
-            transaction_id = data.get('transaction_id')
+            transaction_id = data.get('transactionId')
             payment_status = data.get('status')
 
             # Récupérer la facture en fonction du transaction_id
@@ -29,15 +29,15 @@ def notification(request):
             invoice.save()
 
             # Update payment info
-            payment.number_user = data.get('number_user')
-            payment.name_user = data.get('name_user')
-            payment.email_user = data.get('email_user')
-            payment.country_user = data.get('country_user')
+            payment.phone = data.get('phone')
+            payment.customer = data.get('customer')
             payment.currency = data.get('currency')
-            payment.amount_total = data.get('amount_total')
+            payment.fees = data.get('fees')
+            payment.amount_receive = data.get('amountReceive')
+            payment.amount_total = data.get('amountTotal')
             payment.status = data.get('status')
-            payment.type_transaction = data.get('type_transaction')
-            payment.type_payment = data.get('type_payment')
+            payment.type_transaction = data.get('typeTransaction')
+            payment.type_payment = data.get('operator')
             payment.date = data.get('date')
             payment.save()
 

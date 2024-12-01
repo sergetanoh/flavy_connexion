@@ -146,7 +146,6 @@ class ClientUpdateAPIView(APIView):
         
         if 'num_pharmacie'  in request.data and request.data['num_pharmacie']:
             pharmacie=Pharmacie.objects.filter(num_pharmacie=request.data['num_pharmacie']).first()
-            print("pharmacie : ", pharmacie)
         
             if  not pharmacie:
                 return Response({"detail": "Désolé, aucune pharmacie trouvée avec ce identifiant."}, status=status.HTTP_400_BAD_REQUEST)
@@ -810,25 +809,33 @@ class RechercheList(APIView):
     
     def get(self, request):
         if request.user.is_pharmacie == True:
-            recherches = Recherche.objects.filter(Q(pharmacie_id=request.user.pharmacie_user.pk) | Q(en_attente=True)).order_by("-pk")
+            # recherches = Recherche.objects.filter(Q(pharmacie_id=request.user.pharmacie_user.pk) | Q(en_attente=True)).order_by("-pk")
+            recherches = Recherche.objects.filter(pharmacie_id=request.user.pharmacie_user.pk).order_by("-pk")
         else:
             recherches = Recherche.objects.filter(client=request.user.client_user.pk).order_by("-pk")
-        
-        
+    
         serializer = RechercheSerializer(recherches, many=True)
         return Response(serializer.data)
 
     def post(self, request):
-        request.data["client"]= request.user.client_user
+        client = request.user.client_user
+
+        if not client.num_pharmacie:
+            return Response({"detail": "Désolé, vous n'êtes affilié a aucune pharmacie."}, status=status.HTTP_403_FORBIDDEN)
         
-        print(request.data)
-        
+        pharmacie=Pharmacie.objects.filter(num_pharmacie=client.num_pharmacie).first()
+
+        if  not pharmacie:
+            return Response({"detail": "Désolé, aucune pharmacie trouvée avec votre identifiant pharmacie."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        request.data["client"]= client
+        request.data["pharmacie_id"]= pharmacie
+                
         recherche = Recherche.objects.create(**request.data)
         
         serializer = RechercheSerializer(recherche, many=False)
         
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class RechercheDetail(APIView):
     authentication_classes = (JWTAuthentication,)
@@ -1146,3 +1153,25 @@ class InvoiceRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView)
 
     queryset = Invoice.objects.prefetch_related('items')
     serializer_class = InvoiceSerializer
+
+class InvoiceregisterRecuCode(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+
+    def get_invoice(self, pk):
+        try:
+            return Invoice.objects.get(pk=pk)
+        except Invoice.DoesNotExist:
+            raise Http404
+
+    def put(self, request, pk):
+        invoice =self.get_invoice(pk)
+
+        if not request.data["code_recu"]:
+            return Response({"detail":"Désolé, le code du reçu pharmacie est réquis"}, status=status.HTTP_400_BAD_REQUEST)
+
+        invoice.code_recu = request.data["code_recu"]
+        invoice.save()
+
+        serializer = InvoiceSerializer(invoice)
+        return Response(serializer.data)
