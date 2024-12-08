@@ -130,6 +130,7 @@ class Commande(models.Model):
     STATUT_CHOICES = [
         ('en_attente', 'En attente'),
         ('traite', 'Traité'),
+        ('en_attente_livraison', 'En attente de livraison'),
         ('en_cours', 'En cours de livraison'),
         ('livree', 'Livrée'),
         ('termine', 'Terminé'),

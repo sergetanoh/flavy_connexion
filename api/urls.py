@@ -34,7 +34,9 @@ from .views import (
     clientInvoices,
     pharmacieInvoices,
     initiate_payment,
-    InvoiceregisterRecuCode
+    InvoiceregisterRecuCode,
+
+    sendNotification
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -97,6 +99,11 @@ urlpatterns = [
     path('invoices/<int:pk>/', InvoiceRetrieveUpdateDestroyAPIView.as_view(), name='invoice-detail'),
 
     path('invoices/init-payment/', initiate_payment.as_view(), name='invoice-payment'),
+
+    
+    path('send-push-notification', sendNotification.as_view(), name='sendpushnotification'),
+
+
 
     
 

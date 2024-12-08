@@ -1,7 +1,7 @@
 import json
 from django.utils import timezone
 from django.http import JsonResponse
-from api.models import Invoice,InvoicePayment
+from api.models import Invoice,InvoicePayment, Commande, Recherche
 
 def notification(request):
     if request.method == 'POST' or request.method == 'GET':
@@ -21,6 +21,18 @@ def notification(request):
             if payment_status == 'SUCCESSFULL':
                 invoice.status = 'payee'  # ou un autre statut que vous utilisez pour les paiements
                 invoice.paid_at = timezone.now()
+
+                # Mettre à jour le statut de la commande
+                commande = Commande.objects.get(pk=invoice.commande.pk)
+                if  commande and commande.terminer == False:
+                    commande.statut = 'en_attente_livraison'
+                    commande.save()
+
+                    # Mettre à jour le statut de la recherche
+                    if commande.recherche:
+                        recherche = Recherche.objects.get(pk=commande.recherche.pk)
+                        recherche.statut = 'termine'
+                        recherche.save()
 
             else:
                 invoice.status = 'echouee'  # statut en cas d'échec du paiement

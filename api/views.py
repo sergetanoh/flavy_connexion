@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed
 from .permissions import IsPharmacieOrReadOnly,IsSuperUserOrReadOnly,IsClientOrReadOnly,IsPharmacieCanModifyCommande, IsPharmacieOrClient
 from .backends import EmailBackend
-from .fonctions import has_key_client,has_key_pharmacie, generer_code, send_notification, generate_reference
+from .fonctions import has_key_client,has_key_pharmacie, generer_code, send_notification, generate_reference, initialize_firebase
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.http import Http404
@@ -26,7 +26,10 @@ from django.core.serializers import serialize
 from rest_framework import generics
 import jwt
 import re
+import os
 import datetime
+from rest_framework_simplejwt.exceptions import TokenError
+
 
 
 # from .utils import pharmacies_within_radius
@@ -95,31 +98,31 @@ class ClientRegistrationAPIView(APIView):
                     return Response({"detail": "Désolé le numero de la pharmacie est incorrecte."}, status=status.HTTP_400_BAD_REQUEST)
                 
             new_user = User.objects.create_user(
-                    email=serializer.validated_data['user']['email'],
-                    username=serializer.validated_data['user']['username'],
-                    password=request.data['user']['password'],
-                    is_pharmacie=False
-                )
+                email=serializer.validated_data['user']['email'],
+                username=serializer.validated_data['user']['username'],
+                password=request.data['user']['password'],
+                is_pharmacie=False
+            )
 
-                # Associez le nouvel utilisateur au modèle Client
+            # Associez le nouvel utilisateur au modèle Client
                 
             new_client = Client.objects.create(
-                    user=new_user,
-                    prenom=serializer.validated_data['prenom'],
-                    adresse=serializer.validated_data['adresse'],
-                    ville=serializer.validated_data['ville'],
-                    phone=serializer.validated_data['phone'],
-                    image=serializer.validated_data['image'],
-                    n_cmu=serializer.validated_data['n_cmu'],
-                    n_assurance=serializer.validated_data['n_assurance'],
-                    sexe=serializer.validated_data['sexe'],
-                    maladie_chronique=serializer.validated_data['maladie_chronique'],
-                    poids=serializer.validated_data['poids'],
-                    taille=serializer.validated_data['taille'],
-                    num_pharmacie=serializer.validated_data['num_pharmacie']
-                )
+                user=new_user,
+                prenom=serializer.validated_data['prenom'],
+                adresse=serializer.validated_data['adresse'],
+                ville=serializer.validated_data['ville'],
+                phone=serializer.validated_data['phone'],
+                image=serializer.validated_data['image'],
+                n_cmu=serializer.validated_data['n_cmu'],
+                n_assurance=serializer.validated_data['n_assurance'],
+                sexe=serializer.validated_data['sexe'],
+                maladie_chronique=serializer.validated_data['maladie_chronique'],
+                poids=serializer.validated_data['poids'],
+                taille=serializer.validated_data['taille'],
+                num_pharmacie=serializer.validated_data['num_pharmacie']
+            )
 
-                # Utilisez les tokens pour générer les cookies
+            # Utilisez les tokens pour générer les cookies
             refresh = RefreshToken.for_user(new_user)
             data = {
                     'refresh': str(refresh),
@@ -486,30 +489,38 @@ class UserLogoutViewAPI(APIView):
     )
     def post(self, request):
         authentication_classes = (JWTAuthentication,)
-        permission_classes = (AllowAny,)
+        permission_classes = (IsAuthenticated,)  # Permet uniquement aux utilisateurs authentifiés
+
+        # Récupérer le token depuis l'en-tête Authorization
+        auth_header = request.META.get('HTTP_AUTHORIZATION', "")
+        if auth_header.startswith("Bearer "):
+            user_token = auth_header.split(' ')[1]
+        else:
+            user_token = None
 
         if user_token:
-            try:
-                # Ajoutez le token à la liste noire pour le rendre invalide
-                RefreshToken(user_token).blacklist()
-
-                # Supprimez le cookie d'accès
-                response = Response()
-                response.delete_cookie('access_token')
-                response.data = {
-                    'message': 'Déconnexion réussie.'
-                }
-                return response
+            try:    
+                # Vérifie si le token est un RefreshToken valide et le blacklist
+                try:
+                    refresh_token = RefreshToken(user_token)
+                    refresh_token.blacklist()
+                    response = Response({'message': 'Déconnexion réussie.'})
+                    response.delete_cookie('access_token')
+                    response.delete_cookie('refresh_token')
+                    return response
+                except TokenError:
+                    return Response({'error': 'Le token fourni n\'est pas un RefreshToken valide.'}, status=status.HTTP_400_BAD_REQUEST)
+                    
+            except TokenError:
+                # Si le token est invalide ou déjà blacklisté
+                return Response({'error': 'Token invalide ou déjà blacklisté.'}, status=status.HTTP_400_BAD_REQUEST)
             except Exception as e:
-                # Gérer les erreurs si nécessaire
-                return Response({'error': 'Une erreur est survenue lors de la déconnexion.'}, status=400)
+                # Gère les autres exceptions
+                return Response({'error': 'Une erreur est survenue.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # Si le token n'est pas fourni, renvoie une réponse indiquant que l'utilisateur est déjà déconnecté
-        response = Response()
-        response.data = {
-            'message': 'L\'utilisateur est déjà déconnecté.'
-        }
-        return response
+        # Si aucun token n'est fourni, l'utilisateur est déjà déconnecté
+        return Response({'message': 'L\'utilisateur est déjà déconnecté.'}, status=status.HTTP_401_UNAUTHORIZED)
+
 
 class get_pharmacie(APIView):
   authentication_classes = (JWTAuthentication,)
@@ -634,7 +645,7 @@ class CommandesPharmacietous(APIView):
     permission_classes = [IsPharmacieCanModifyCommande]
     
     def get(self, request):
-        commandes = Commande.objects.filter(pharmacie_id=request.user.pharmacie_user.pk)
+        commandes = Commande.objects.filter(pharmacie_id=request.user.pharmacie_user.pk).order_by('-pk')
         
         
         serializer = CommandeSerializer(commandes, many=True)
@@ -854,7 +865,7 @@ class RechercheDetail(APIView):
         # Verifier si pharmacie
         if request.user.is_pharmacie == True :
             # Verifier si recherche traitée par d'autre pharmacie
-            if recherche.en_attente == False and recherche.pharmacie_id != request.user.pharmacie_user.pk:
+            if recherche.en_attente == False and recherche.pharmacie_id.pk != request.user.pharmacie_user.pk:
                 return Response({"detail":"Désolé, vous ne pouvez accéder à cette recherche"}, status=status.HTTP_403_FORBIDDEN)
         else:
             if recherche.client.pk != request.user.client_user.pk:
@@ -1108,7 +1119,7 @@ class pharmacieInvoices(APIView):
     def get(self, request):
         phmcie =Pharmacie.objects.get(user=request.user.pk)
 
-        invoices = Invoice.objects.filter(commande__pharmacie_id__id=phmcie.pk)
+        invoices = Invoice.objects.filter(commande__pharmacie_id__id=phmcie.pk).order_by('-pk')
         serializer = InvoiceSerializer(invoices, many=True)
         return Response(serializer.data)
     
@@ -1175,3 +1186,24 @@ class InvoiceregisterRecuCode(APIView):
 
         serializer = InvoiceSerializer(invoice)
         return Response(serializer.data)
+
+class  sendNotification(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+        # Start Notification
+        notification = Notification.objects.create(
+            title = "Vous avez reçu nouvelle notification",
+            message = "Vous avez recu une nouvelle notification test", 
+            type = "test",
+            data_id = 0,
+            metadata = "test data",
+            is_read = False,
+            user_type = 'client',
+            user_id = request.user.client_user.pk
+        )
+
+        send_notification(notification, request.data["firebase_token"])
+
+        return Response({"detail":"Notification envoyée"}, status=status.HTTP_200_OK)

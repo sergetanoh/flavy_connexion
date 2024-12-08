@@ -1,11 +1,14 @@
 import re
 import json
 import random
+import os
 import string
 import requests
 from django.core import serializers
 from .serializers import NotificationSerializer
 from .models import Invoice, InvoicePayment
+import firebase_admin
+from firebase_admin import credentials, messaging
 
 def has_key_client(errors):
     if isinstance(errors, dict):
@@ -117,7 +120,7 @@ def generer_code(name, nombre, longueur=6):
     newCode = name.upper()+"-"+code
     return newCode
 
-def send_notification(notification, token_phone):
+def resend_notification(notification, token_phone):
     
     url = "https://fcm.googleapis.com/fcm/send"
     token = token_phone
@@ -151,6 +154,8 @@ def send_notification(notification, token_phone):
         }
     }
 
+    print(data_to_send)
+
     headers = {
         'Content-Type': 'application/json',
         'Authorization': 'key=' + server_key
@@ -158,10 +163,57 @@ def send_notification(notification, token_phone):
 
     try:
         response = requests.post(url, data=json.dumps(data_to_send), headers=headers, timeout=1)
+        print('FCM Response:', response)
         response.raise_for_status()
        
     except requests.exceptions.RequestException as e:
         print('FCM Send Error:', e)
+
+def initialize_firebase():
+    """
+    Initialise Firebase Admin SDK avec la clé de compte de service.
+    
+    :param service_account_path: Chemin vers le fichier JSON de la clé de compte de service.
+    """
+    # Obtenir le chemin absolu vers le fichier JSON
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Chemin racine du projet
+    service_account_path = os.path.join(BASE_DIR, "assets", "flavy-83d2e-533998492aef.json")
+
+    cred = credentials.Certificate(service_account_path)
+    firebase_admin.initialize_app(cred)
+    
+def send_notification(notification, token_phone):
+    """
+    Envoie une notification push via Firebase Cloud Messaging (API v1).
+
+    :param registration_token: Token d'enregistrement de l'appareil cible ou nom du topic.
+    :param title: Titre de la notification.
+    :param body: Corps (message) de la notification.
+    :return: Résultat de l'envoi.
+    """
+    if not firebase_admin._apps:
+        initialize_firebase()
+
+    registration_token = token_phone
+    title = notification.title 
+    body = notification.message
+
+    # Création du message
+    message = messaging.Message(
+        notification=messaging.Notification(
+            title=title,
+            body=body,
+        ),
+        token=registration_token,  # Peut être un topic en remplaçant "token" par "topic".
+    )
+
+    # Envoi de la notification
+    try:
+        response = messaging.send(message)
+        return response
+    except Exception as e:
+        print(f"Une erreur est survenue lors de l'envoi : {e}")
+        return None
 
 
 def generate_reference(length, type="invoice"):
