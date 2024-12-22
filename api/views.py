@@ -10,13 +10,10 @@ from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed
 from .permissions import IsPharmacieOrReadOnly,IsSuperUserOrReadOnly,IsClientOrReadOnly,IsPharmacieCanModifyCommande, IsPharmacieOrClient
 from .backends import EmailBackend
-from .fonctions import has_key_client,has_key_pharmacie, generer_code, send_notification, generate_reference, initialize_firebase
+from .utils import has_key_client,has_key_pharmacie, generer_code, send_notification, generate_reference, send_sms
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.http import Http404
-from django.conf import settings
-from django.http import HttpResponse
-from django.template import loader
 from rest_framework import serializers
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -124,6 +121,9 @@ class ClientRegistrationAPIView(APIView):
                 num_pharmacie=serializer.validated_data['num_pharmacie']
             )
 
+            #Send SMS
+            send_notification =send_sms(new_client.phone,f"Bonjour {new_client.prenom}, votre compte a bien été créé. Vous pouvez vous connecter sur l'application mobile.")
+            print("send_notification: ",send_notification)
             # Utilisez les tokens pour générer les cookies
             refresh = RefreshToken.for_user(new_user)
             data = {
