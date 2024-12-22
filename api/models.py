@@ -59,7 +59,8 @@ class Client(models.Model):
         ('Femme', 'Femme'),
     ]
     
-    prenom = models.CharField(max_length=255)
+    prenom = models.CharField(max_length=255, null=True, blank=True)
+    nom = models.CharField(max_length=255, null=True, blank=True)
     adresse = models.CharField(max_length=255)
     ville = models.CharField(max_length=255)
     phone = models.CharField(max_length=15)

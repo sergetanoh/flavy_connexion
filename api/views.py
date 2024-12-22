@@ -46,6 +46,7 @@ class ClientRegistrationAPIView(APIView):
             "is_pharmacy": False
         },
         "prenom": "John",
+        "nom": "Light",
         "adresse": "123 Rue de la Ville",
         "ville": "Ville",
         "phone": "0123456789",
@@ -109,6 +110,7 @@ class ClientRegistrationAPIView(APIView):
             new_client = Client.objects.create(
                 user=new_user,
                 prenom=serializer.validated_data['prenom'],
+                nom=serializer.validated_data['nom'],
                 adresse=serializer.validated_data['adresse'],
                 ville=serializer.validated_data['ville'],
                 phone=serializer.validated_data['phone'],
