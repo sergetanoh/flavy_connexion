@@ -16,6 +16,7 @@ from .models import Invoice, InvoicePayment
 import firebase_admin
 from firebase_admin import credentials, messaging
 from twilio.rest import Client
+from django.http import JsonResponse
 
 import jwt
 
@@ -314,3 +315,99 @@ def send_sms(to_phone, message):
         return f"Message envoyé avec succès : {message.sid}"
     except Exception as e:
         return f"Une erreur s'est produite : {str(e)}"
+
+
+def generate_payment_token():
+   
+    # URL de l'API externe pour générer le token
+    url = "https://api.digitalpaye.com/v1/auth"  # Remplacez par l'URL réelle de l'API
+
+    # Les en-têtes requis
+    headers = {
+        "X-Environment": "Production",
+        'Content-Type': 'application/json',
+        "Authorization": "Basic bGl2ZV9kaWdpdGFscGF5ZTk2NjM4MDo0NDliNjhiZi0xZWU5LTQwN2ItYTRiYS01YjU3ZDdiZGRhOTY=",
+    }
+
+    try:
+        # Effectuer une requête POST à l'API
+        response = requests.post(url, headers=headers)
+
+        # Vérifiez si la requête a réussi
+        if response.status_code == 200:
+            bodydata = response.json()  # Décoder la réponse JSON
+            return bodydata.data.token
+        else:
+            # Gérer les erreurs HTTP
+            print(f"Une erreur s'est produite lors de la requête : {response.status_code}")
+            return ""
+    except Exception as e:
+        # Gérer les erreurs inattendues
+        print(f"Une erreur interne s'est produite : {str(e)}")
+        return ""
+    
+
+def send_mobile_money_request(request):
+    """
+    Fonction Django pour envoyer une requête POST à l'API DigitalPaye
+    pour une collecte Mobile Money.
+    """
+
+    # URL de l'API
+    url = "https://api.digitalpaye.com/v1/collecte/mobile-money"
+
+    # Token de l'utilisateur
+    token = generate_payment_token()
+
+    # Corps de la requête (données à envoyer)
+    payload = {
+        "transactionId": "DIGITAL-79110123018182",
+        "customer": {
+            "lastName": "GUEI",
+            "firstName": "HELIE",
+            "phone": "0777101308",
+            "email": "elieguei225@gmail.com",
+            "address": {
+                "countryCode": "CI",
+                "city": "Abidjan",
+                "streetAddress": "Plateau Cocody"
+            }
+        },
+        "payer": "0504675930",
+        "amount": "600",
+        "currency": "XOF",
+        "operator": "MTN_MONEY_CI" #"WAVE_MONEY_CI"
+    }
+
+    # En-têtes de la requête
+    headers = {
+        "X-Environment": "Production",
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer { token }"
+    }
+
+    try:
+        # Effectuer une requête POST
+        response = requests.post(url, json=payload, headers=headers)
+
+        # Vérifiez si la requête a réussi
+        if response.status_code == 200:
+            return JsonResponse({
+                "statusCode": response.status_code,
+                "message": "Request successful",
+                "data": response.json()
+            })
+        else:
+            return JsonResponse({
+                "statusCode": response.status_code,
+                "message": "Request failed",
+                "error": response.text
+            }, status=response.status_code)
+
+    except Exception as e:
+        # Gérer les erreurs réseau ou internes
+        return JsonResponse({
+            "statusCode": 500,
+            "message": "An error occurred",
+            "error": str(e)
+        }, status=500)
