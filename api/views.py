@@ -84,60 +84,63 @@ class ClientRegistrationAPIView(APIView):
     )
     
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(raise_exception=False):
-            # Créez et enregistrez un nouvel utilisateur
-            numero=serializer.validated_data['num_pharmacie']
+        try:
+            serializer = self.serializer_class(data=request.data)
+            if serializer.is_valid(raise_exception=False):
+                # Créez et enregistrez un nouvel utilisateur
+                numero=serializer.validated_data['num_pharmacie']
 
-            if numero:
-                pharmacie=Pharmacie.objects.filter(num_pharmacie=numero).first()
+                if numero:
+                    pharmacie=Pharmacie.objects.filter(num_pharmacie=numero).first()
+                    
+                    if  not pharmacie:
+                        return Response({"detail": "Désolé le numero de la pharmacie est incorrecte."}, status=status.HTTP_400_BAD_REQUEST)
+                    
+                new_user = User.objects.create_user(
+                    email=serializer.validated_data['user']['email'],
+                    username=serializer.validated_data['user']['username'],
+                    password=request.data['user']['password'],
+                    is_pharmacie=False
+                )
+
+                # Associez le nouvel utilisateur au modèle Client
+                    
+                new_client = Client.objects.create(
+                    user=new_user,
+                    prenom=serializer.validated_data['prenom'],
+                    nom=serializer.validated_data.get('nom', ''),
+                    adresse=serializer.validated_data['adresse'],
+                    ville=serializer.validated_data['ville'],
+                    phone=serializer.validated_data['phone'],
+                    image=serializer.validated_data['image'],
+                    n_cmu=serializer.validated_data['n_cmu'],
+                    n_assurance=serializer.validated_data['n_assurance'],
+                    sexe=serializer.validated_data['sexe'],
+                    maladie_chronique=serializer.validated_data['maladie_chronique'],
+                    poids=serializer.validated_data['poids'],
+                    taille=serializer.validated_data['taille'],
+                    num_pharmacie=serializer.validated_data['num_pharmacie']
+                )
+
+                #Send SMS
+                send_notification =send_sms(new_client.phone,f"Bonjour {new_client.prenom}, votre compte a bien été créé. Vous pouvez vous connecter sur l'application mobile.")
+                print("send_notification: ",send_notification)
+                # Utilisez les tokens pour générer les cookies
+                refresh = RefreshToken.for_user(new_user)
+                data = {
+                        'refresh': str(refresh),
+                        'access': str(refresh.access_token),
+                        'detail': f"Client {new_client.prenom} enregistré avec succès!",
+                        'user_data':ClientSerializer(new_client,many=False).data
+                    }
+                response = Response(data, status=status.HTTP_201_CREATED)
+
+                return response
                 
-                if  not pharmacie:
-                    return Response({"detail": "Désolé le numero de la pharmacie est incorrecte."}, status=status.HTTP_400_BAD_REQUEST)
-                
-            new_user = User.objects.create_user(
-                email=serializer.validated_data['user']['email'],
-                username=serializer.validated_data['user']['username'],
-                password=request.data['user']['password'],
-                is_pharmacie=False
-            )
-
-            # Associez le nouvel utilisateur au modèle Client
-                
-            new_client = Client.objects.create(
-                user=new_user,
-                prenom=serializer.validated_data['prenom'],
-                nom=serializer.validated_data['nom'],
-                adresse=serializer.validated_data['adresse'],
-                ville=serializer.validated_data['ville'],
-                phone=serializer.validated_data['phone'],
-                image=serializer.validated_data['image'],
-                n_cmu=serializer.validated_data['n_cmu'],
-                n_assurance=serializer.validated_data['n_assurance'],
-                sexe=serializer.validated_data['sexe'],
-                maladie_chronique=serializer.validated_data['maladie_chronique'],
-                poids=serializer.validated_data['poids'],
-                taille=serializer.validated_data['taille'],
-                num_pharmacie=serializer.validated_data['num_pharmacie']
-            )
-
-            #Send SMS
-            send_notification =send_sms(new_client.phone,f"Bonjour {new_client.prenom}, votre compte a bien été créé. Vous pouvez vous connecter sur l'application mobile.")
-            print("send_notification: ",send_notification)
-            # Utilisez les tokens pour générer les cookies
-            refresh = RefreshToken.for_user(new_user)
-            data = {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                    'detail': f"Client {new_client.prenom} enregistré avec succès!",
-                    'user_data':ClientSerializer(new_client,many=False).data
-                }
-            response = Response(data, status=status.HTTP_201_CREATED)
-
-            return response
-            
-        list_erreur=has_key_client(serializer.errors)
-        return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
+            list_erreur=has_key_client(serializer.errors)
+            return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ClientUpdateAPIView(APIView):
     authentication_classes = (JWTAuthentication,)
@@ -147,42 +150,46 @@ class ClientUpdateAPIView(APIView):
     def put(self, request):
         # Créez et enregistrez un nouvel utilisateur
         # numero= request.data['num_pharmacie']
-        formData = request.data
-        
-        if 'num_pharmacie'  in request.data and request.data['num_pharmacie']:
-            pharmacie=Pharmacie.objects.filter(num_pharmacie=request.data['num_pharmacie']).first()
-        
-            if  not pharmacie:
-                return Response({"detail": "Désolé, aucune pharmacie trouvée avec ce identifiant."}, status=status.HTTP_400_BAD_REQUEST)
-            
-        user = request.user
-        if not user:
-            return Response({'detail': "Désolé, vous devez être authentifié pour effectuer cette action."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Modifier mot de passe User
-        if 'user' in request.data and 'password' in request.data['user']:
-            user.set_password(request.data['user']['password'])
-            user.save()
-            formData.pop('user')
-            
-        
-        client = request.user.client_user
-        
-        for key in formData:
-            setattr(client, key, formData[key])
-                
-        client.save()
-            
+        try:
 
-        # Utilisez les tokens pour générer les cookies
-        refresh = RefreshToken.for_user(user)
-        data = {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-                'detail': f"Client {client.prenom} modifié avec succès!",
-                'user_data':ClientSerializer(client,many=False).data
-            }
-        return Response(data, status=status.HTTP_200_OK)
+            formData = request.data
+            
+            if 'num_pharmacie'  in request.data and request.data['num_pharmacie']:
+                pharmacie=Pharmacie.objects.filter(num_pharmacie=request.data['num_pharmacie']).first()
+            
+                if  not pharmacie:
+                    return Response({"detail": "Désolé, aucune pharmacie trouvée avec ce identifiant."}, status=status.HTTP_400_BAD_REQUEST)
+                
+            user = request.user
+            if not user:
+                return Response({'detail': "Désolé, vous devez être authentifié pour effectuer cette action."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Modifier mot de passe User
+            if 'user' in request.data and 'password' in request.data['user']:
+                user.set_password(request.data['user']['password'])
+                user.save()
+                formData.pop('user')
+                
+            
+            client = request.user.client_user
+            
+            for key in formData:
+                setattr(client, key, formData[key])
+                    
+            client.save()
+                
+
+            # Utilisez les tokens pour générer les cookies
+            refresh = RefreshToken.for_user(user)
+            data = {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                    'detail': f"Client {client.prenom} modifié avec succès!",
+                    'user_data':ClientSerializer(client,many=False).data
+                }
+            return Response(data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ClientDetailAPIView(APIView):
@@ -244,53 +251,56 @@ class PharmacieRegistrationAPIView(APIView):
     )
     
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(raise_exception=False):
-            # Créez et enregistrez un nouvel utilisateur
-            new_user = User.objects.create_user(
-                email=serializer.validated_data['user']['email'],
-                username=serializer.validated_data['user']['username'],
-                password=request.data['user']['password'],
-                is_pharmacie=True
-            )
+        try:
 
-            # Associez le nouvel utilisateur au modèle Pharmacie
-            
-            new_pharmacie = Pharmacie.objects.create(
-                user=new_user,
-                num_pharmacie="",
-                nom_pharmacie=serializer.validated_data['nom_pharmacie'],
-                adresse_pharmacie=serializer.validated_data['adresse_pharmacie'],
-                commune_pharmacie=serializer.validated_data['commune_pharmacie'],
-                ville_pharmacie=serializer.validated_data['ville_pharmacie'],
-                numero_contact_pharmacie=serializer.validated_data['numero_contact_pharmacie'],
-                horaire_ouverture_pharmacie=serializer.validated_data['horaire_ouverture_pharmacie'],
-            )
-            
-            # Enregistrer code pharmacie
-            code = generer_code(new_pharmacie.nom_pharmacie, new_pharmacie.pk, longueur=6)
-            new_pharmacie.num_pharmacie = code
-            new_pharmacie.save()
-            
-             
-            refresh = RefreshToken.for_user(new_user)
+            serializer = self.serializer_class(data=request.data)
+            if serializer.is_valid(raise_exception=False):
+                # Créez et enregistrez un nouvel utilisateur
+                new_user = User.objects.create_user(
+                    email=serializer.validated_data['user']['email'],
+                    username=serializer.validated_data['user']['username'],
+                    password=request.data['user']['password'],
+                    is_pharmacie=True
+                )
 
-            print(f"Pharmacie {new_pharmacie.nom_pharmacie} enregistrée avec succès!")
-            
-            data = {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-                'detail': f"Pharmacie {new_pharmacie.nom_pharmacie} enregistrée avec succès!",
-                'user_data':PharmacieSerializer(new_pharmacie,many=False).data
+                # Associez le nouvel utilisateur au modèle Pharmacie
                 
-            }
-            response = Response(data, status=status.HTTP_201_CREATED)
+                new_pharmacie = Pharmacie.objects.create(
+                    user=new_user,
+                    num_pharmacie="",
+                    nom_pharmacie=serializer.validated_data['nom_pharmacie'],
+                    adresse_pharmacie=serializer.validated_data['adresse_pharmacie'],
+                    commune_pharmacie=serializer.validated_data['commune_pharmacie'],
+                    ville_pharmacie=serializer.validated_data['ville_pharmacie'],
+                    numero_contact_pharmacie=serializer.validated_data['numero_contact_pharmacie'],
+                    horaire_ouverture_pharmacie=serializer.validated_data['horaire_ouverture_pharmacie'],
+                )
+                
+                # Enregistrer code pharmacie
+                code = generer_code(new_pharmacie.nom_pharmacie, new_pharmacie.pk, longueur=6)
+                new_pharmacie.num_pharmacie = code
+                new_pharmacie.save()
+                
+                
+                refresh = RefreshToken.for_user(new_user)
 
-            return response
-        list_erreur=has_key_pharmacie(serializer.errors)
+                print(f"Pharmacie {new_pharmacie.nom_pharmacie} enregistrée avec succès!")
+                
+                data = {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                    'detail': f"Pharmacie {new_pharmacie.nom_pharmacie} enregistrée avec succès!",
+                    'user_data':PharmacieSerializer(new_pharmacie,many=False).data
+                    
+                }
+                response = Response(data, status=status.HTTP_201_CREATED)
+
+                return response
+            list_erreur=has_key_pharmacie(serializer.errors)
             
-        
-        return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
+            return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class PharmacieUpdateAPIView(APIView):
     authentication_classes = (JWTAuthentication,)
@@ -298,52 +308,53 @@ class PharmacieUpdateAPIView(APIView):
 
     serializer_class = PharmacieSerializer
     def put(self, request):
-        
-        serializer = self.serializer_class(data=request.data)
-        if request.user.is_pharmacie != True:
-            return Response({ 'detail': "Vous ne pouvez pas effectuer cette action"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # if serializer.is_valid(raise_exception=False):
-        #   Modifier et enregistrez un nouvel utilisateur
-        user = request.user
-        if 'user' in request.data and 'password' in request.data['user']:
-            user.set_password(request.data['user']['password'])
-            user.save()
-        
-        # validateData = serializer.validated_data
-        # Modifier les information du modèle Pharmacie
-        # if 'user' in validateData:
-        #      user_data = validateData.pop('user')
-            
-        pharmacie = request.user.pharmacie_user
-        # print(pharmacie)
-        # pharmacie.update(**validateData)
-        
-        pharmacie.nom_pharmacie=request.data['nom_pharmacie']
-        pharmacie.adresse_pharmacie=request.data['adresse_pharmacie']
-        pharmacie.commune_pharmacie=request.data['commune_pharmacie']
-        pharmacie.ville_pharmacie=request.data['ville_pharmacie']
-        pharmacie.numero_contact_pharmacie=request.data['numero_contact_pharmacie']
-        pharmacie.horaire_ouverture_pharmacie=request.data['horaire_ouverture_pharmacie']
-        pharmacie.degarde=request.data['degarde']
-        pharmacie.save()
-        
-            
-        refresh = RefreshToken.for_user(user)
+        try:
 
-        
-        data = {
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-            'detail': f"Information Pharmacie {pharmacie.nom_pharmacie} modifiée avec succès!",
-            'user_data':PharmacieSerializer(pharmacie,many=False).data
+            serializer = self.serializer_class(data=request.data)
+            if request.user.is_pharmacie != True:
+                return Response({ 'detail': "Vous ne pouvez pas effectuer cette action"}, status=status.HTTP_400_BAD_REQUEST)
             
-        }
-        response = Response(data, status=status.HTTP_201_CREATED)
+            # if serializer.is_valid(raise_exception=False):
+            #   Modifier et enregistrez un nouvel utilisateur
+            user = request.user
+            if 'user' in request.data and 'password' in request.data['user']:
+                user.set_password(request.data['user']['password'])
+                user.save()
+            
+            # validateData = serializer.validated_data
+            # Modifier les information du modèle Pharmacie
+            # if 'user' in validateData:
+            #      user_data = validateData.pop('user')
+                
+            pharmacie = request.user.pharmacie_user
+            # print(pharmacie)
+            # pharmacie.update(**validateData)
+            
+            pharmacie.nom_pharmacie=request.data['nom_pharmacie']
+            pharmacie.adresse_pharmacie=request.data['adresse_pharmacie']
+            pharmacie.commune_pharmacie=request.data['commune_pharmacie']
+            pharmacie.ville_pharmacie=request.data['ville_pharmacie']
+            pharmacie.numero_contact_pharmacie=request.data['numero_contact_pharmacie']
+            pharmacie.horaire_ouverture_pharmacie=request.data['horaire_ouverture_pharmacie']
+            pharmacie.degarde=request.data['degarde']
+            pharmacie.save()
+            
+                
+            refresh = RefreshToken.for_user(user)
 
-        return response
-        # list_erreur=has_key_pharmacie(serializer.errors)
-        # return Response(list_erreur, status=status.HTTP_400_BAD_REQUEST)
+            
+            data = {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'detail': f"Information Pharmacie {pharmacie.nom_pharmacie} modifiée avec succès!",
+                'user_data':PharmacieSerializer(pharmacie,many=False).data
+                
+            }
+            response = Response(data, status=status.HTTP_201_CREATED)
+
+            return response
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
 class PharmacieDetailAPIView(APIView):
