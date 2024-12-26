@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed
 from .permissions import IsPharmacieOrReadOnly,IsSuperUserOrReadOnly,IsClientOrReadOnly,IsPharmacieCanModifyCommande, IsPharmacieOrClient
 from .backends import EmailBackend
-from .utils import has_key_client,has_key_pharmacie, generer_code, send_notification, generate_reference, send_sms
+from .utils import has_key_client,has_key_pharmacie, generer_code, send_notification, generate_reference, send_sms, send_sms_jetfy
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.http import Http404
@@ -123,7 +123,7 @@ class ClientRegistrationAPIView(APIView):
                 )
 
                 #Send SMS
-                send_notification =send_sms(new_client.phone,f"Bonjour {new_client.prenom}, votre compte a bien été créé. Vous pouvez vous connecter sur l'application mobile.")
+                send_notification = send_sms_jetfy(new_client.phone,f"Bonjour {new_client.prenom}, votre compte a bien été créé. Vous pouvez vous connecter sur l'application mobile.")
                 print("send_notification: ",send_notification)
                 # Utilisez les tokens pour générer les cookies
                 refresh = RefreshToken.for_user(new_user)
@@ -592,7 +592,9 @@ class PasserCommandeClient(APIView):
             user_id = pharmacie.pk
         )
 
-        
+        # SEND SMS
+        if pharmacie.numero_contact_pharmacie:
+            send_sms_jetfy(pharmacie.numero_contact_pharmacie, notification.message)
         
         if pharmacie.firebase_token:
             # Sérialisez l'instance de notification
@@ -746,6 +748,10 @@ class PharmacieDetail(APIView):
                 user_type = 'client',
                 user_id = client.pk
             )
+
+            # SEND SMS
+            if client.phone:
+                send_sms_jetfy(client.phone, notification.message)
                         
             if client.firebase_token:
                 send_notification(notification, client.firebase_token)
@@ -769,6 +775,10 @@ class PharmacieDetail(APIView):
                     user_type = 'client',
                     user_id = client.pk
                 )
+
+                # SEND SMS
+                if client.phone:
+                    send_sms_jetfy(client.phone, notification.message)
                             
                 if client.firebase_token:
                     send_notification(notification, client.firebase_token)
@@ -973,7 +983,12 @@ class RechercheDetail(APIView):
                 user_type = 'client',
                 user_id = recherche.client.pk
             )
-            
+
+            # Send Notification
+            if recherche.client.phone:
+                # Send SMS
+                send_sms_jetfy(recherche.client.phone, notification.message)
+                
             if recherche.client.firebase_token:
                 send_notification(notification, recherche.client.firebase_token)
 
@@ -1217,6 +1232,12 @@ class  sendNotification(APIView):
             user_id = request.user.client_user.pk
         )
 
-        send_notification(notification, request.data["firebase_token"])
+        # SEND SMS
+        if request.user.client_user.phone:
+            data = send_sms_jetfy(request.user.client_user.phone, notification.message)
+            print("SMS data : ", data)
+        
+        if request.user.client_user.firebase_token:
+            send_notification(notification, request.user.client_user.firebase_token)
 
         return Response({"detail":"Notification envoyée"}, status=status.HTTP_200_OK)

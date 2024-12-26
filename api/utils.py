@@ -317,6 +317,60 @@ def send_sms(to_phone, message):
         return f"Une erreur s'est produite : {str(e)}"
 
 
+def send_sms_jetfy(recipient,  message):
+    try:
+    
+        # Vérifier si le numéro du destinataire commence par "+"
+        if recipient.startswith('+'):
+            recipient = recipient[1:]
+
+        # Récupérer les configurations
+        url =  "https://api.jetfy.net/api/v1/sms/send"
+        token = settings.JETFY_API_TOKEN
+        sender_id = settings.JETFY_SENDER_ID
+        
+        # Préparer les headers avec le token Bearer
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json'
+        }
+        
+        # Préparer le payload pour l'API Jetfy
+        payload = {
+            'sender_id': sender_id,
+            'recipient': recipient,
+            'message': message
+        }
+        
+        # Faire l'appel à l'API Jetfy
+        response = requests.post(
+            url,
+            json=payload,
+            headers=headers
+        )
+        
+        # Vérifier la réponse de l'API
+        if response.status_code == 200 or response.status_code == 201:
+            return response.json()
+        else:
+            return response.json()
+            
+    except json.JSONDecodeError:
+        return {
+            'success': False,
+            'error': 'Format JSON invalide'
+        }
+    except requests.RequestException as e:
+        return {
+            'success': False,
+            'error': f'Erreur de connexion à l\'API Jetfy: {str(e)}'
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
 def generate_payment_token():
    
     # URL de l'API externe pour générer le token
