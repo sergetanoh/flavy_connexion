@@ -140,6 +140,30 @@ class NotificationSerializer(serializers.ModelSerializer):
         model = Notification
         fields = '__all__'
 
+    
+class WalletPharmacieSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WalletPharmacie
+        fields = '__all__'
+
+
+class WalletPharmacieHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WalletPharmacieHistory
+        fields = ['action_type', 'label', 'amount', 'new_balance', 'created_at']
+        read_only_fields = ['new_balance', 'created_at']
+
+class TransactionSerializer(serializers.Serializer):
+    action_type = serializers.ChoiceField(choices=TYPE_CHOICES)
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    label = serializers.CharField(required=False, allow_null=True)
+
+    def validate(self, data):
+        if not data.get('amount'):
+            raise serializers.ValidationError({"amount": "Le montant est obligatoire"})
+        if not data.get('action_type'):
+            raise serializers.ValidationError({"action_type": "Le type d'action est obligatoire"})
+        return data
 
 
 

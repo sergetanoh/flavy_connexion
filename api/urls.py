@@ -35,6 +35,7 @@ from .views import (
     pharmacieInvoices,
     initiate_payment,
     InvoiceregisterRecuCode,
+    WalletTransactionView,
 
     sendNotification
 )
@@ -103,9 +104,7 @@ urlpatterns = [
     
     path('send-push-notification', sendNotification.as_view(), name='sendpushnotification'),
 
-
-
-    
+    path('wallets/<int:wallet_id>/transaction/', WalletTransactionView.as_view(), name='wallet-transaction'),
 
 ]
  

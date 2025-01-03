@@ -1,5 +1,5 @@
 from .models import Client,User,Pharmacie,Commande,Conseil, Recherche, Notification, Invoice, InvoiceItem, InvoicePayment
-from .serializers import ClientSerializer, UserLoginSerializer,PharmacieSerializer, UserSerializer, CommandeSerializer,ConseilSerializer, RechercheSerializer,  NotificationSerializer, InvoiceSerializer, InvoicePaymentSerializer
+from .serializers import ClientSerializer, UserLoginSerializer,PharmacieSerializer, UserSerializer, CommandeSerializer,ConseilSerializer, RechercheSerializer,  NotificationSerializer, InvoiceSerializer, InvoicePaymentSerializer, WalletPharmacieSerializer,  WalletPharmacieHistorySerializer,  TransactionSerializer
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -1001,12 +1001,19 @@ class RechercheDetail(APIView):
             if recherche.client.pk != request.user.client_user.pk:
                 return Response({"detail":"Désolé, vous ne pouvez effectuer à cette action"}, status=status.HTTP_403_FORBIDDEN)
             
+            # Si le champ terminer est absent ou faux, renvoyer une erreur
             if  not('terminer' in request.data) or request.data['terminer'] == False:
                 return Response({"detail":"Requete incorrecte"}, status=status.HTTP_400_BAD_REQUEST)
             else:
+                # Sinon, terminer la recherche
                 recherche.en_attente = False
                 recherche.statut = "termine"
                 recherche.save()
+                
+                # Mettre à jour le statut de la commande
+                commande = Commande.objects.get(pk=recherche.commande.pk)
+                commande.statut = "termine"
+                commande.save()
         
         for key in request.data:
             setattr(recherche, key, request.data[key])
@@ -1241,3 +1248,82 @@ class  sendNotification(APIView):
             send_notification(notification, request.user.client_user.firebase_token)
 
         return Response({"detail":"Notification envoyée"}, status=status.HTTP_200_OK)
+
+
+class WalletTransactionView(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+
+    def get_or_create_wallet_pharmacie(user_pk):
+    try:
+        pharmacie = Pharmacie.objects.get(user=user_pk)
+    except Pharmacie.DoesNotExist:
+        raise ValueError("Pharmacie non trouvée")
+        
+    wallet, created = WalletPharmacie.objects.get_or_create(
+        pharmacie=pharmacie,
+        defaults={'balance': 0.00, 'old_balance': 0.00}
+    )
+    
+    if created:
+        WalletPharmacieHistory.objects.create(
+            wallet=wallet,
+            action_type='depot',
+            label='Création du wallet',
+            amount=0.00,
+            new_balance=0.00
+        )
+        
+    return wallet, created
+
+    @transaction.atomic
+    def post(self, request):
+        try:
+
+            Pharmacie.objects.get(user=request.user.pk)
+           
+            wallet, is_new = self.get_or_create_wallet_pharmacie(request.user.pk)
+
+            wallet = WalletPharmacie.objects.get(id=wallet_id)
+
+            serializer = TransactionSerializer(data=request.data)
+            
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            data = serializer.validated_data
+            amount = Decimal(str(data['amount']))
+            
+            if data['action_type'] == 'retrait' and amount > wallet.balance:
+                return Response(
+                    {"error": "Solde insuffisant"}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Mise à jour du solde
+            wallet.old_balance = wallet.balance
+            if data['action_type'] == 'depot':
+                wallet.balance += amount
+            else:
+                wallet.balance -= amount
+            wallet.save()
+            
+            # Création de l'historique
+            WalletPharmacieHistory.objects.create(
+                wallet=wallet,
+                action_type=data['action_type'],
+                label=data.get('label'),
+                amount=amount,
+                new_balance=wallet.balance
+            )
+            
+            return Response({
+                "message": f"{data['action_type']} effectué avec succès",
+                "new_balance": wallet.balance
+            }, status=status.HTTP_200_OK)
+            
+        except WalletPharmacie.DoesNotExist:
+            return Response(
+                {"error": "Wallet non trouvé"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
