@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import Client,Pharmacie
-from .models import Commande,Commande,Conseil, Recherche, Notification, Invoice, InvoiceItem, InvoicePayment
+from .models import Commande,Commande,Conseil, Recherche, Notification, Invoice, InvoiceItem, InvoicePayment, WalletPharmacie, WalletPharmacieHistory
 import pdb
 
 class UserSerializer(serializers.ModelSerializer):
@@ -150,9 +150,13 @@ class WalletPharmacieSerializer(serializers.ModelSerializer):
 class WalletPharmacieHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = WalletPharmacieHistory
-        fields = ['action_type', 'label', 'amount', 'new_balance', 'created_at']
-        read_only_fields = ['new_balance', 'created_at']
+        fields = ['action_type', 'label', 'amount', 'new_balance','user', 'created_at']
+        read_only_fields = ['new_balance', 'user', 'created_at']
 
+TYPE_CHOICES = [
+    ('depot', 'Depot'),
+    ('retrait', 'Retrait')
+]
 class TransactionSerializer(serializers.Serializer):
     action_type = serializers.ChoiceField(choices=TYPE_CHOICES)
     amount = serializers.DecimalField(max_digits=10, decimal_places=2)

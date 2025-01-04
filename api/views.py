@@ -1,4 +1,4 @@
-from .models import Client,User,Pharmacie,Commande,Conseil, Recherche, Notification, Invoice, InvoiceItem, InvoicePayment
+from .models import Client,User,Pharmacie,Commande,Conseil, Recherche, Notification, Invoice, InvoiceItem, InvoicePayment, WalletPharmacie,  WalletPharmacieHistory
 from .serializers import ClientSerializer, UserLoginSerializer,PharmacieSerializer, UserSerializer, CommandeSerializer,ConseilSerializer, RechercheSerializer,  NotificationSerializer, InvoiceSerializer, InvoicePaymentSerializer, WalletPharmacieSerializer,  WalletPharmacieHistorySerializer,  TransactionSerializer
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView
@@ -26,6 +26,9 @@ import re
 import os
 import datetime
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework import status
+from django.db import transaction
+from decimal import Decimal
 
 
 
@@ -1166,21 +1169,25 @@ class initiate_payment(APIView):
         clt=Client.objects.get(user=request.user.pk)
         invoice = Invoice.objects.get(pk=request.data["invoice"])
         if not invoice:
-            return Response("Facture introuvable", status=status.HTTP_400_BAD_REQUEST)
+            return Response("Facture introuvable", status=status.HTTP_404_NOT_FOUND)
+        
+        if invoice.status == "payee":
+            return Response("Facture deja payée", status=status.HTTP_403_FORBIDDEN)
         
 
         if invoice.client.pk != clt.pk :
             return Response({"detail":"Vous ne pouvez pas payer cette facture"}, status=status.HTTP_400_BAD_REQUEST)
         
-
-        payment = InvoicePayment.objects.create(
-            reference = generate_reference(32),
-            invoice = invoice,
-            amount_total = invoice.total_amount,
-            status = "initie",
-            currency = "XOF"
-        )
-        payment.save()
+        payment = InvoicePayment.objects.get(invoice=invoice.pk)
+        if not payment:
+            payment = InvoicePayment.objects.create(
+                reference = generate_reference(32),
+                invoice = invoice,
+                amount_total = invoice.total,
+                status = "initie",
+                currency = "XOF"
+            )
+            payment.save()
 
         serializer = InvoicePaymentSerializer(payment)
         return Response(serializer.data)
@@ -1249,43 +1256,42 @@ class  sendNotification(APIView):
 
         return Response({"detail":"Notification envoyée"}, status=status.HTTP_200_OK)
 
+###################  Phamacy wallet #########################
 
+# *****************  Admin  *********************************
+def get_or_create_wallet_pharmacie(pharmacie_id):
+        try:
+            pharmacie = Pharmacie.objects.get(pk=pharmacie_id)
+        except Pharmacie.DoesNotExist:
+            raise ValueError("Pharmacie non trouvée")
+            
+        wallet, created = WalletPharmacie.objects.get_or_create(
+            pharmacie=pharmacie,
+            defaults={'balance': 0.00, 'old_balance': 0.00}
+        )
+        
+        if created:
+            WalletPharmacieHistory.objects.create(
+                wallet=wallet,
+                action_type='depot',
+                label='Création du wallet',
+                amount=0.00,
+                new_balance=0.00
+            )
+            
+        return wallet, created
+
+#  Crediter  ou  debiter  le  solde  de  la  pharmacie
 class WalletTransactionView(APIView):
     authentication_classes = (JWTAuthentication,)
     permission_classes = (AllowAny,)
 
-    def get_or_create_wallet_pharmacie(user_pk):
-    try:
-        pharmacie = Pharmacie.objects.get(user=user_pk)
-    except Pharmacie.DoesNotExist:
-        raise ValueError("Pharmacie non trouvée")
-        
-    wallet, created = WalletPharmacie.objects.get_or_create(
-        pharmacie=pharmacie,
-        defaults={'balance': 0.00, 'old_balance': 0.00}
-    )
-    
-    if created:
-        WalletPharmacieHistory.objects.create(
-            wallet=wallet,
-            action_type='depot',
-            label='Création du wallet',
-            amount=0.00,
-            new_balance=0.00
-        )
-        
-    return wallet, created
-
     @transaction.atomic
-    def post(self, request):
-        try:
-
-            Pharmacie.objects.get(user=request.user.pk)
-           
-            wallet, is_new = self.get_or_create_wallet_pharmacie(request.user.pk)
-
-            wallet = WalletPharmacie.objects.get(id=wallet_id)
-
+    def post(self, request, pharmacie_id):
+        try:           
+            wallet, is_new = get_or_create_wallet_pharmacie(pharmacie_id)
+            
+            # Validation des données
             serializer = TransactionSerializer(data=request.data)
             
             if not serializer.is_valid():
@@ -1314,6 +1320,7 @@ class WalletTransactionView(APIView):
                 action_type=data['action_type'],
                 label=data.get('label'),
                 amount=amount,
+                user=request.user,
                 new_balance=wallet.balance
             )
             
@@ -1327,3 +1334,51 @@ class WalletTransactionView(APIView):
                 {"error": "Wallet non trouvé"}, 
                 status=status.HTTP_404_NOT_FOUND
             )
+
+class WalletPharmacieView(APIView):
+    def get(self, request, pharmacie_id):
+        wallet, is_new = get_or_create_wallet_pharmacie(pharmacie_id)
+        serializer = WalletPharmacieSerializer(wallet)
+        return Response(serializer.data)
+
+
+class  WalletHistoryView(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+    
+    def get(self, request, pharmacie_id):
+        wallet = WalletPharmacie.objects.get(pharmacie=pharmacie_id)
+        history = WalletPharmacieHistory.objects.filter(wallet=wallet).order_by('-created_at')
+        serializer = WalletPharmacieHistorySerializer(history, many=True)
+        return Response(serializer.data)
+
+
+# *****************  Pharmacie  *********************************
+class  PharmacyWallet(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+        if request.user.is_pharmacie != True:
+            return Response("Autorisation refusée", status=status.HTTP_403_FORBIDDEN)
+
+        pharmacie_id = request.user.pharmacie_user.pk
+        wallet, is_new = get_or_create_wallet_pharmacie(pharmacie_id)
+
+        serializer = WalletPharmacieSerializer(wallet)
+        return Response(serializer.data)
+
+
+class  PharmacyWalletHistory(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+    
+    def get(self, request):
+        if request.user.is_pharmacie != True:
+            return Response("Autorisation refusée", status=status.HTTP_403_FORBIDDEN)
+
+        pharmacie_id = request.user.pharmacie_user.pk
+        wallet, is_new = get_or_create_wallet_pharmacie(pharmacie_id)
+        history = WalletPharmacieHistory.objects.filter(wallet=wallet).order_by('-created_at')
+        serializer = WalletPharmacieHistorySerializer(history, many=True)
+        return Response(serializer.data)

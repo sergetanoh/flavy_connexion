@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from decimal import Decimal
 
 
 from django.conf import settings
@@ -211,12 +212,15 @@ class Invoice(models.Model):
     due_date = models.DateField(blank=True, null=True)  # Date d'échéance de paiement
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='impayee')
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    service_fees = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     facture = models.CharField(max_length=255, blank=True, null=True)
     reference = models.CharField(max_length=255, unique=True)
     paid_at = models.DateTimeField(blank=True, null=True)
     code_recu = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
 
 
     def __str__(self):
@@ -227,7 +231,28 @@ class Invoice(models.Model):
         Calcule le montant total de la facture en additionnant le total de chaque item.
         """
         total = sum(item.total_price() for item in self.items.all())
+
+        # Calcul du 2.5%
+        frais_fixes = Decimal(str(total)) * Decimal(str(0.025))
+        
+        # Calcul du 1%
+        un_pourcent = Decimal(str(total)) * Decimal(str(0.01))
+        
+        # Ajout de 1% ou 200 selon la condition
+        if un_pourcent > 200:
+            frais_additionnels = un_pourcent
+        else:
+            frais_additionnels = 200
+            
+        # Total des frais
+        frais_totaux = frais_fixes + frais_additionnels
+        frais_arrondis = round(frais_totaux / 5) * 5
+
+        totalapaye = total + frais_arrondis
+
         self.total_amount = total
+        self.service_fees = frais_arrondis
+        self.total = totalapaye
         self.save()
 
 class InvoiceItem(models.Model):
@@ -288,6 +313,7 @@ class  WalletPharmacieHistory(models.Model):
     label = models.CharField(max_length=255, blank=True, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     new_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='wallet_pharmacie_history', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

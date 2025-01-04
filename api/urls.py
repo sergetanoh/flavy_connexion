@@ -35,7 +35,12 @@ from .views import (
     pharmacieInvoices,
     initiate_payment,
     InvoiceregisterRecuCode,
+
     WalletTransactionView,
+    WalletPharmacieView,
+    WalletHistoryView,
+    PharmacyWallet,
+    PharmacyWalletHistory,
 
     sendNotification
 )
@@ -104,7 +109,17 @@ urlpatterns = [
     
     path('send-push-notification', sendNotification.as_view(), name='sendpushnotification'),
 
-    path('wallets/<int:wallet_id>/transaction/', WalletTransactionView.as_view(), name='wallet-transaction'),
+
+    # URL pour les wallets  pour  pharmacie
+    path('pharmacie-wallet/account/', PharmacyWallet.as_view(), name='phamarmacy-wallet-account'),
+    path('pharmacie-wallet/history/', PharmacyWalletHistory.as_view(), name='phamarmacy-wallet-history'),
+
+
+
+    # URL pour les wallets  pour  admin
+    path('wallets/<int:pharmacie_id>/transaction/', WalletTransactionView.as_view(), name='wallet-transaction'),
+    path('wallets/<int:pharmacie_id>/pharmacie/', WalletPharmacieView.as_view(), name='wallet-pharmacie'),
+    path('wallets/<int:pharmacie_id>/history/', WalletHistoryView.as_view(), name='wallet-history'),
 
 ]
  

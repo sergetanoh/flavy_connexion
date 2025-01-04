@@ -465,3 +465,34 @@ def send_mobile_money_request(request):
             "message": "An error occurred",
             "error": str(e)
         }, status=500)
+
+
+def calculer_frais(montant):
+    """
+    Calcule les frais selon les règles suivantes:
+    - 2.5% du montant
+    - Plus 1% du montant si ce 1% est supérieur à 200, sinon plus 200
+    
+    Args:
+        montant (float): Le montant initial
+        
+    Returns:
+        float: Le montant des frais calculés
+    """
+    # Calcul du 2.5%
+    frais_fixes = int(montant) * montant * 0.025
+    
+    # Calcul du 1%
+    un_pourcent = montant * 0.01
+    
+    # Ajout de 1% ou 200 selon la condition
+    if un_pourcent > 200:
+        frais_additionnels = un_pourcent
+    else:
+        frais_additionnels = 200
+        
+    # Total des frais
+    frais_totaux = frais_fixes + frais_additionnels
+    frais_arrondis = round(frais_totaux / 5) * 5
+    
+    return frais_arrondis
