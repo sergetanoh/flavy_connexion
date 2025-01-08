@@ -1390,6 +1390,9 @@ class  PharmacyWalletHistory(APIView):
 
 
 class BroadcastMessageAPIView(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+    
     parser_classes = [MultiPartParser]  # Pour accepter les fichiers multipart/form-data
 
     
