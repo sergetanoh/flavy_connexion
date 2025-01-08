@@ -17,6 +17,9 @@ import firebase_admin
 from firebase_admin import credentials, messaging
 from twilio.rest import Client
 from django.http import JsonResponse
+import boto3
+from django.conf import settings
+from botocore.exceptions import ClientError
 
 import jwt
 
@@ -496,3 +499,28 @@ def calculer_frais(montant):
     frais_arrondis = round(frais_totaux / 5) * 5
     
     return frais_arrondis
+
+def upload_to_s3(file, filename):
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        region_name=settings.AWS_S3_REGION_NAME
+    )
+    
+    try:
+        file_path = f"images/{filename}"
+        s3_client.upload_fileobj(
+            file,
+            settings.AWS_STORAGE_BUCKET_NAME,
+            file_path,
+            ExtraArgs={
+                # 'ACL': 'public-read',
+                'ContentType': file.content_type
+            }
+        )
+        
+        url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/{file_path}"
+        return url
+    except ClientError as e:
+        raise Exception(f"Erreur lors de l'upload S3: {str(e)}")

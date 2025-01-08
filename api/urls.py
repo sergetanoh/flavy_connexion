@@ -42,7 +42,10 @@ from .views import (
     PharmacyWallet,
     PharmacyWalletHistory,
 
-    sendNotification
+    ImageUploadView,
+    
+    sendNotification,
+    BroadcastMessageAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -108,6 +111,8 @@ urlpatterns = [
 
     
     path('send-push-notification', sendNotification.as_view(), name='sendpushnotification'),
+    path('broadcast-message', BroadcastMessageAPIView.as_view(), name='broadcastMessageAPIView'),
+    
 
 
     # URL pour les wallets  pour  pharmacie
@@ -120,6 +125,8 @@ urlpatterns = [
     path('wallets/<int:pharmacie_id>/transaction/', WalletTransactionView.as_view(), name='wallet-transaction'),
     path('wallets/<int:pharmacie_id>/pharmacie/', WalletPharmacieView.as_view(), name='wallet-pharmacie'),
     path('wallets/<int:pharmacie_id>/history/', WalletHistoryView.as_view(), name='wallet-history'),
+
+    path('upload/images/', ImageUploadView.as_view(), name='image-upload'),
 
 ]
  

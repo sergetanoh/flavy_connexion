@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed
 from .permissions import IsPharmacieOrReadOnly,IsSuperUserOrReadOnly,IsClientOrReadOnly,IsPharmacieCanModifyCommande, IsPharmacieOrClient
 from .backends import EmailBackend
-from .utils import has_key_client,has_key_pharmacie, generer_code, send_notification, generate_reference, send_sms, send_sms_jetfy
+from .utils import has_key_client,has_key_pharmacie, generer_code, send_notification, generate_reference, send_sms, send_sms_jetfy,  upload_to_s3
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.http import Http404
@@ -29,6 +29,10 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework import status
 from django.db import transaction
 from decimal import Decimal
+from .utils import upload_to_s3
+from rest_framework.parsers import MultiPartParser, FormParser
+import openpyxl
+
 
 
 
@@ -1382,3 +1386,98 @@ class  PharmacyWalletHistory(APIView):
         history = WalletPharmacieHistory.objects.filter(wallet=wallet).order_by('-created_at')
         serializer = WalletPharmacieHistorySerializer(history, many=True)
         return Response(serializer.data)
+
+
+
+class BroadcastMessageAPIView(APIView):
+    parser_classes = [MultiPartParser]  # Pour accepter les fichiers multipart/form-data
+
+    
+    def post(self, request, *args, **kwargs):
+        # Récupérer les données envoyées dans la requête
+        fichier_excel = request.FILES.get('fichier')  # Le fichier Excel
+        message_generique = request.data.get('message')  # Le message à diffuser
+
+        if not fichier_excel or not message_generique:
+            return Response({"error": "Veuillez fournir un fichier Excel et un message."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Lire les noms et numéros à partir du fichier Excel
+            wb = openpyxl.load_workbook(fichier_excel)
+            sheet = wb.active
+
+            # Récupérer les données : première colonne = nom, deuxième colonne = numéro
+            clients = [(row[0].value, row[1].value) for row in sheet.iter_rows(min_row=2, max_col=2)]
+
+            # Envoyer le message personnalisé à chaque client
+            resultats = []
+            for nom, numero in clients:
+                if numero and nom:  # Vérifier que le numéro et le nom ne sont pas vides
+                    try:
+                        # Construire le message personnalisé
+                        prefixe = "Mme/Mlle/Mr"  # Vous pouvez personnaliser cela
+                        message_personnalise = f"{prefixe} {nom}, {message_generique}"
+
+                        # Envoyer le message via Twilio
+                        data = send_sms_jetfy(numero, message_personnalise)
+                        resultats.append(data)
+                    except Exception as e:
+                        resultats.append({"nom": nom, "numero": numero, "statut": f"échec: {str(e)}"})
+
+            return Response({"resultats": resultats}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ImageUploadView(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+    
+    parser_classes = (MultiPartParser, FormParser)
+    
+    def post(self, request):
+        # Vérifier si on a des fichiers
+        files = request.FILES.getlist('images')
+        if not files:
+            return Response(
+                {'error': 'Aucune image fournie'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        uploaded_images = []
+        errors = []
+        
+        # Utiliser une transaction pour garantir l'intégrité des données
+        with transaction.atomic():
+            for file in files:
+                try:
+                    # Upload sur S3
+                    s3_url = upload_to_s3(file, file.name)
+                    
+                    uploaded_images.append({
+                        'file': file.name,
+                        'url': s3_url
+                    })
+                except Exception as e:
+                    errors.append({
+                        'file': file.name,
+                        'error': str(e)
+                    })
+        
+        # Préparer la réponse
+        response_data = {
+            'success': uploaded_images,
+            'errors': errors
+        }
+        
+        # Si certains uploads ont échoué mais pas tous
+        if errors and uploaded_images:
+            status_code = status.HTTP_207_MULTI_STATUS
+        # Si tout a réussi
+        elif uploaded_images and not errors:
+            status_code = status.HTTP_201_CREATED
+        # Si tout a échoué
+        else:
+            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+            
+        return Response(response_data, status=status_code)
