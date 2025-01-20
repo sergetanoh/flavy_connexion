@@ -1171,7 +1171,10 @@ class initiate_payment(APIView):
 
     def post(self, request):
         clt=Client.objects.get(user=request.user.pk)
-        invoice = Invoice.objects.get(pk=request.data["invoice"])
+        print("clt : ", clt)
+        print("request.data : ", request.data.get("invoice"))
+        invoice = Invoice.objects.filter(pk=request.data.get("invoice")).first()
+        print("invoice : ", invoice)
         if not invoice:
             return Response("Facture introuvable", status=status.HTTP_404_NOT_FOUND)
         
@@ -1182,11 +1185,14 @@ class initiate_payment(APIView):
         if invoice.client.pk != clt.pk :
             return Response({"detail":"Vous ne pouvez pas payer cette facture"}, status=status.HTTP_400_BAD_REQUEST)
         
-        payment = InvoicePayment.objects.get(invoice=invoice.pk)
+        print("invoice : ", invoice)
+        payment = InvoicePayment.objects.filter(invoice=invoice.pk).first()
+        print("payment : ", payment)
         if not payment:
             payment = InvoicePayment.objects.create(
                 reference = generate_reference(32),
                 invoice = invoice,
+                type_transaction = "collecte",
                 amount_total = invoice.total,
                 status = "initie",
                 currency = "XOF"
@@ -1420,6 +1426,74 @@ class BroadcastMessageAPIView(APIView):
                         # Construire le message personnalisé
                         prefixe = "Mme/Mlle/Mr"  # Vous pouvez personnaliser cela
                         message_personnalise = f"{prefixe} {nom}, {message_generique}"
+
+                        # Envoyer le message via Twilio
+                        data = send_sms_jetfy(numero, message_personnalise)
+                        resultats.append(data)
+                    except Exception as e:
+                        resultats.append({"nom": nom, "numero": numero, "statut": f"échec: {str(e)}"})
+
+            return Response({"resultats": resultats}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class BroadcastMessageWithConditionAPIView(APIView):
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (AllowAny,)
+    
+    parser_classes = [MultiPartParser]  # Pour accepter les fichiers multipart/form-data
+
+    
+    def post(self, request, *args, **kwargs):
+        # Récupérer les données envoyées dans la requête
+        fichier_excel = request.FILES.get('fichier')  # Le fichier Excel
+        message_generique = request.data.get('message')  # Le message à diffuser
+
+        if not fichier_excel or not message_generique:
+            return Response({"error": "Veuillez fournir un fichier Excel et un message."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Lire les noms et numéros à partir du fichier Excel
+            wb = openpyxl.load_workbook(fichier_excel)
+            sheet = wb.active
+
+            clients = []
+
+            # Récupérer les données : première colonne = nom, deuxième colonne = numéro
+            #clients = [(row[0].value, row[1].value) for row in sheet.iter_rows(min_row=2, max_col=2)]
+
+            for row in sheet.iter_rows(min_row=2, max_col=4):
+
+                # Cas 1 : Colonne Beneficiaire est vide
+                if row[0].value and not(row[1].value):
+                    clients.append((row[0].value, row[3].value))
+                
+
+                # Cas 2 :  Colonnes Nom et beneficiaire sont pas vides
+                if row[0].value and row[1].value:
+                    if row[2].value and row[2].value < 18:
+                        clients.append((row[0].value, row[3].value))
+                    else:
+                        clients.append((row[1].value, row[3].value))
+                
+                # Cas 3 : Colonnes Nom et beneficiaire sont vides
+                if not(row[0].value) and not(row[1].value):
+                    clients.append((row[0].value, row[3].value))
+
+            print(clients)
+
+            # Envoyer le message personnalisé à chaque client
+            resultats = []
+            for nom, numero in clients:
+                if numero:  # Vérifier que le numéro et le nom ne sont pas vides
+                    try:
+                        # Construire le message personnalisé
+                        prefixe = "Mme/Mlle/Mr"  # Vous pouvez personnaliser cela
+                        if nom:
+                            message_personnalise = f"{prefixe} {nom}, {message_generique}"
+                        else:
+                            message_personnalise = f"{message_generique}"
 
                         # Envoyer le message via Twilio
                         data = send_sms_jetfy(numero, message_personnalise)

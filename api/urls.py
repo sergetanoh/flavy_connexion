@@ -45,7 +45,8 @@ from .views import (
     ImageUploadView,
     
     sendNotification,
-    BroadcastMessageAPIView
+    BroadcastMessageAPIView,
+    BroadcastMessageWithConditionAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -111,7 +112,9 @@ urlpatterns = [
 
     
     path('send-push-notification', sendNotification.as_view(), name='sendpushnotification'),
-    path('broadcast-message', BroadcastMessageAPIView.as_view(), name='broadcastMessageAPIView'),
+    path('broadcast-message', BroadcastMessageAPIView.as_view(), name='broadcastMessage'),
+    path('broadcast-customize-message', BroadcastMessageWithConditionAPIView.as_view(), name='broadcastCustomizeMessage'),
+    
     
 
 

@@ -344,6 +344,8 @@ def send_sms_jetfy(recipient,  message):
             'recipient': recipient,
             'message': message
         }
+
+        print("payload : ",payload)
         
         # Faire l'appel à l'API Jetfy
         response = requests.post(
