@@ -327,6 +327,9 @@ def send_sms_jetfy(recipient,  message):
         if recipient.startswith('+'):
             recipient = recipient[1:]
 
+        if recipient.length == 10:
+            recipient = '225'+recipient
+
         # Récupérer les configurations
         url =  "https://api.jetfy.net/api/v1/sms/send"
         token = settings.JETFY_API_TOKEN
