@@ -327,7 +327,7 @@ def send_sms_jetfy(recipient,  message):
         if recipient.startswith('+'):
             recipient = recipient[1:]
 
-        if recipient.length == 10:
+        if len(recipient) == 10:
             recipient = '225'+recipient
 
         # Récupérer les configurations
