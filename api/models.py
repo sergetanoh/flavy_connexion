@@ -285,12 +285,31 @@ class InvoicePayment(models.Model):
     type_transaction = models.CharField(max_length=255, blank=True, null=True)
     type_payment = models.CharField(max_length=255,blank=True, null=True)
     date = models.DateTimeField(blank=True, null=True)
+    is_refunded = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Payment #{self.reference}"
+    
+class Transaction(models.Model):
+    transaction_id = models.CharField(max_length=255)
+    ref = models.CharField(max_length=255, blank=True, null=True)
+    currency = models.CharField(max_length=10, default='XOF')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    fees = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    amount_receive = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    amount_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    status = models.CharField(max_length=20)
+    type_transaction = models.CharField(max_length=20)
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='transaction_payment')
+    operator = models.CharField(max_length=20, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return f"Transaction #{self.ref}"
     
 class WalletPharmacie(models.Model):
     pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE, related_name='wallet_pharmacie')
@@ -319,5 +338,6 @@ class  WalletPharmacieHistory(models.Model):
 
     def __str__(self):
         return f"Historique du Wallet de la pharmacie {self.wallet}"
+
 
 

@@ -2,7 +2,6 @@ from django.conf import settings
 from datetime import datetime, timedelta
 # from django.contrib.gis.db.models.functions import Distance
 # from django.contrib.gis.geos import Point
-from .models import Pharmacie
 from django.db.models import F
 import re
 import json
@@ -12,13 +11,12 @@ import string
 import requests
 from django.core import serializers
 from .serializers import NotificationSerializer
-from .models import Invoice, InvoicePayment
+from .models import Invoice, InvoicePayment, Pharmacie, Transaction
 import firebase_admin
 from firebase_admin import credentials, messaging
 from twilio.rest import Client
 from django.http import JsonResponse
 import boto3
-from django.conf import settings
 from botocore.exceptions import ClientError
 
 import jwt
@@ -291,6 +289,9 @@ def generate_reference(length, type="invoice"):
     if type == "payment":
         item = InvoicePayment.objects.filter(reference=ref).first()
 
+    if type == "transaction":
+        item = Transaction.objects.filter(transaction_id=ref).first()
+
     if item:
         generate_reference(length)
 
@@ -320,7 +321,7 @@ def send_sms(to_phone, message):
         return f"Une erreur s'est produite : {str(e)}"
 
 
-def send_sms_jetfy(recipient,  message):
+def send_sms_jetfy(recipient,  message, sender_id = settings.FLAVY_SENDER_ID):    
     try:
     
         # Vérifier si le numéro du destinataire commence par "+"
@@ -333,7 +334,7 @@ def send_sms_jetfy(recipient,  message):
         # Récupérer les configurations
         url =  "https://api.jetfy.net/api/v1/sms/send"
         token = settings.JETFY_API_TOKEN
-        sender_id = settings.JETFY_SENDER_ID
+        # sender_id = settings.JETFY_SENDER_ID
         
         # Préparer les headers avec le token Bearer
         headers = {

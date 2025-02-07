@@ -21,6 +21,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from django.core.serializers import serialize
 from rest_framework import generics
+from django.conf import settings
 import jwt
 import re
 import os
@@ -102,7 +103,15 @@ class ClientRegistrationAPIView(APIView):
                     
                     if  not pharmacie:
                         return Response({"detail": "Désolé le numero de la pharmacie est incorrecte."}, status=status.HTTP_400_BAD_REQUEST)
-                    
+                
+                user = User.objects.filter(email=serializer.validated_data['user']['email']).first()
+                if user:
+                    return Response({"detail": "Cet email a deja été utilisé."}, status=status.HTTP_400_BAD_REQUEST)
+                
+                client = Client.objects.filter(phone = serializer.validated_data['phone']).first()
+                if client:
+                    return Response({"detail": "Numéro de telephone a deja été utilisé."}, status=status.HTTP_400_BAD_REQUEST)
+                
                 new_user = User.objects.create_user(
                     email=serializer.validated_data['user']['email'],
                     username=serializer.validated_data['user']['username'],
@@ -262,6 +271,15 @@ class PharmacieRegistrationAPIView(APIView):
 
             serializer = self.serializer_class(data=request.data)
             if serializer.is_valid(raise_exception=False):
+
+                user = User.objects.filter(email=serializer.validated_data['user']['email']).first()
+                if user:
+                    return Response({"detail": "Cet email a deja été utilisé."}, status=status.HTTP_400_BAD_REQUEST)
+                
+                pharmacie = Pharmacie.objects.filter(numero_contact_pharmacie=serializer.validated_data['numero_contact_pharmacie']).first()
+                if pharmacie:
+                    return Response({"detail": "Numéro de telephone a deja été utilisé."}, status=status.HTTP_400_BAD_REQUEST)
+
                 # Créez et enregistrez un nouvel utilisateur
                 new_user = User.objects.create_user(
                     email=serializer.validated_data['user']['email'],
@@ -1190,7 +1208,7 @@ class initiate_payment(APIView):
         print("payment : ", payment)
         if not payment:
             payment = InvoicePayment.objects.create(
-                reference = generate_reference(32),
+                reference = generate_reference(32, "payment"),
                 invoice = invoice,
                 type_transaction = "collecte",
                 amount_total = invoice.total,
@@ -1198,6 +1216,10 @@ class initiate_payment(APIView):
                 currency = "XOF"
             )
             payment.save()
+        else:
+           payment.reference = generate_reference(32, "payment")
+           payment.amount_total = invoice.total
+           payment.save()
 
         serializer = InvoicePaymentSerializer(payment)
         return Response(serializer.data)
@@ -1428,7 +1450,7 @@ class BroadcastMessageAPIView(APIView):
                         message_personnalise = f"{prefixe} {nom}, {message_generique}"
 
                         # Envoyer le message via Twilio
-                        data = send_sms_jetfy(numero, message_personnalise)
+                        data = send_sms_jetfy(numero, message_personnalise, settings.PHMAREGA_SENDER_ID)
                         resultats.append(data)
                     except Exception as e:
                         resultats.append({"nom": nom, "numero": numero, "statut": f"échec: {str(e)}"})
@@ -1496,7 +1518,7 @@ class BroadcastMessageWithConditionAPIView(APIView):
                             message_personnalise = f"{message_generique}"
 
                         # Envoyer le message via Twilio
-                        data = send_sms_jetfy(numero, message_personnalise)
+                        data = send_sms_jetfy(numero, message_personnalise, settings.PHMAREGA_SENDER_ID)
                         resultats.append(data)
                     except Exception as e:
                         resultats.append({"nom": nom, "numero": numero, "statut": f"échec: {str(e)}"})
