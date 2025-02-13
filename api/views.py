@@ -1189,10 +1189,7 @@ class initiate_payment(APIView):
 
     def post(self, request):
         clt=Client.objects.get(user=request.user.pk)
-        print("clt : ", clt)
-        print("request.data : ", request.data.get("invoice"))
         invoice = Invoice.objects.filter(pk=request.data.get("invoice")).first()
-        print("invoice : ", invoice)
         if not invoice:
             return Response("Facture introuvable", status=status.HTTP_404_NOT_FOUND)
         
