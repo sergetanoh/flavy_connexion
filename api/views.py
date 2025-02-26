@@ -299,6 +299,8 @@ class PharmacieRegistrationAPIView(APIView):
                     ville_pharmacie=serializer.validated_data['ville_pharmacie'],
                     numero_contact_pharmacie=serializer.validated_data['numero_contact_pharmacie'],
                     horaire_ouverture_pharmacie=serializer.validated_data['horaire_ouverture_pharmacie'],
+                    latitude=serializer.validated_data['latitude'],
+                    longitude=serializer.validated_data['longitude']
                 )
                 
                 # Enregistrer code pharmacie
@@ -354,14 +356,35 @@ class PharmacieUpdateAPIView(APIView):
             pharmacie = request.user.pharmacie_user
             # print(pharmacie)
             # pharmacie.update(**validateData)
+            if 'nom_pharmacie' in request.data:
+                pharmacie.nom_pharmacie=request.data['nom_pharmacie']
             
-            pharmacie.nom_pharmacie=request.data['nom_pharmacie']
-            pharmacie.adresse_pharmacie=request.data['adresse_pharmacie']
-            pharmacie.commune_pharmacie=request.data['commune_pharmacie']
-            pharmacie.ville_pharmacie=request.data['ville_pharmacie']
-            pharmacie.numero_contact_pharmacie=request.data['numero_contact_pharmacie']
-            pharmacie.horaire_ouverture_pharmacie=request.data['horaire_ouverture_pharmacie']
-            pharmacie.degarde=request.data['degarde']
+            if 'adresse_pharmacie' in request.data:
+                pharmacie.adresse_pharmacie=request.data['adresse_pharmacie']
+            
+            if 'commune_pharmacie' in request.data:
+                pharmacie.commune_pharmacie=request.data['commune_pharmacie']
+
+            if 'ville_pharmacie' in request.data: 
+                pharmacie.ville_pharmacie=request.data['ville_pharmacie']
+
+            if 'numero_contact_pharmacie' in request.data: 
+                pharmacie.numero_contact_pharmacie=request.data['numero_contact_pharmacie']
+            
+            if 'horaire_ouverture_pharmacie' in request.data:
+                pharmacie.horaire_ouverture_pharmacie=request.data['horaire_ouverture_pharmacie']
+            
+            if 'latitude' in request.data:
+                pharmacie.latitude=request.data['latitude']
+            
+            if 'longitude' in request.data:
+                pharmacie.longitude=request.data['longitude']
+            
+            if 'degarde' in request.data:
+                pharmacie.degarde=request.data['degarde']
+            if 'logo_url' in request.data:
+                pharmacie.logo_url=request.data['logo_url']
+
             pharmacie.save()
             
                 
